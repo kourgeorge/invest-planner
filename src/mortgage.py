@@ -181,22 +181,21 @@ class Mortgage:
         self.amortization_schedule = self.generate_amortization_schedule()
 
     @staticmethod
-    def read_csv(csv_path):
-        df = pd.read_csv(csv_path)
+    def load_dataframe(df:pd.DataFrame, cpi=CPI):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
-            cpi = CPI if row['cpi'] == 'Yes' else 0
+            cpi_actual = cpi if row['cpi'] == 'Yes' else 0
             loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
-                        row['grace_period'], cpi)
+                        row['grace_period'], cpi_actual)
             loans.append(loan)
 
         return Mortgage(loans)
 
-    def write_csv(self, csv_path):
+    def save_dataframe(self) -> pd.DataFrame:
         # Create a list of dictionaries to store loan information
-        loan_data = []
+        loans_data = []
         for loan in self.loans:
-            loan_data.append({
+            loans_data.append({
                 'amount': loan.loan_amount(),
                 'num_of_months': loan.num_of_months(),
                 'interest_rate': loan.average_interest_rate(),
@@ -206,10 +205,7 @@ class Mortgage:
             })
 
         # Create a DataFrame from the list of loan dictionaries
-        df = pd.DataFrame(loan_data)
-
-        # Write the DataFrame to a CSV file
-        df.to_csv(csv_path, index=False)
+        return pd.DataFrame(loans_data)
 
     @staticmethod
     def recycle_mortgage(mortgage, extra_payment, change='payment'):
