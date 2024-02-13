@@ -180,7 +180,7 @@ class RealEstateInvestment(Investment):
 class MortgageRecycleInvestment(Investment):
     def __init__(self, initial_fund, mortgage: Mortgage, investment_yearly_return=StocksMarketYearlyReturn,
                  stocks_yearly_fee_percent=StocksMarketFeesPercentage, name='Mortgage Recycle',
-                 gain_tax=TaxGainPercentage, change='monthly_payment'):
+                 gain_tax=TaxGainPercentage, change='payment'):
         self.name = name
         self.initial_fund = initial_fund
         self.old_mortgage = mortgage

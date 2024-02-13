@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 import pandas as pd
 
@@ -108,17 +109,30 @@ def mortgage_recycle_report():
     saving_investment(mortgage, extra_payment, change)
 
 
-def saving_investment(mortgage, extra_payment, change):
-    MortgageRecycleinvestment = MortgageRecycleInvestment(initial_fund=extra_payment,
-                                                          mortgage=mortgage,
-                                                          investment_yearly_return=constants.StocksMarketYearlyReturn,
-                                                          change=change, name="Mortgage Recycle Period change")
+def saving_investment(mortgage: Mortgage, extra_payment: int, change):
+    amortization_schedule_period = MortgageRecycleInvestment(initial_fund=extra_payment,
+                                                             mortgage=mortgage,
+                                                             investment_yearly_return=constants.StocksMarketYearlyReturn,
+                                                             change='period',
+                                                             name="Mortgage Recycle Period change").generate_amortization_schedule(
+        mortgage.num_of_months() // 12 + 10)
 
-    amortization_schedule = MortgageRecycleinvestment.generate_amortization_schedule(30)
-    yearly_amortization = Investment.get_yearly_amortization(amortization_schedule)
+    amortization_schedule_payment = MortgageRecycleInvestment(initial_fund=extra_payment,
+                                                              mortgage=mortgage,
+                                                              investment_yearly_return=constants.StocksMarketYearlyReturn,
+                                                              change='payment',
+                                                              name="Mortgage Recycle payment change").generate_amortization_schedule(
+        mortgage.num_of_months() // 12 + 10)
 
-    st.subheader("Invested Savings:")
-    st.line_chart(yearly_amortization, y="Total Revenue")
+    yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
+    yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
+
+    st.subheader("Interest Savings (+Investments):")
+    st.line_chart({"Savings(Payment)": yearly_amortization_payment['Monthly Extra'].cumsum(),
+                   "Savings(Period)": yearly_amortization_period['Monthly Extra'].cumsum(),
+                   "Investment(Payment)": yearly_amortization_payment['Total Revenue'],
+                   "Investment(Period)": yearly_amortization_period['Total Revenue']},
+                  color=['#ff4500', '#ff4599', '#008000', '#008099'])
 
 
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
@@ -180,26 +194,32 @@ def summary_section2(mortgage_before, mortgage_after):
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
 
     # Use the last item in the dataframes for "Interest Payment"
-    last_interest_payment_before = yearly_amortization_before["Interest Payment"].iloc[-1]
-    last_interest_payment_after = yearly_amortization_after["Interest Payment"].iloc[-1]
+    last_interest_payment_before = yearly_amortization_before["Interest Payment"].sum()
+    last_interest_payment_after = yearly_amortization_after["Interest Payment"].sum()
 
     # Display the summary table
     st.subheader("Recycle Summary:")
 
     summary_data = {
-        "Metric": ["Amount", "Period", "Interest Payment", "Avg. Interest Rate"],
+        "Metric": ["Amount", "Period (Month)", "Interest Payment", "Avg. Interest Rate", "Monthly Payment"],
         "Before": [mortgage_before.loan_amount(), int(mortgage_before.num_of_months()), last_interest_payment_before,
-                   mortgage_before.average_interest_rate()],
+                   np.round(mortgage_before.average_interest_rate(), 2),
+                   np.round(mortgage_before.average_monthly_payment())],
         "After": [mortgage_after.loan_amount(), int(mortgage_after.num_of_months()), last_interest_payment_after,
-                  mortgage_after.average_interest_rate()],
+                  np.round(mortgage_after.average_interest_rate(), 2),
+                  np.round(mortgage_after.average_monthly_payment())],
         "Savings": [mortgage_before.loan_amount() - mortgage_after.loan_amount(),
-                    int(mortgage_after.num_of_months()) - int(mortgage_before.num_of_months()),
-                    last_interest_payment_after - last_interest_payment_before,
-                    mortgage_after.average_interest_rate() - mortgage_before.average_interest_rate()]
+                    int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
+                    last_interest_payment_before - last_interest_payment_after,
+                    np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
+                    np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment())]
     }
 
-    summary_df = pd.DataFrame(summary_data).set_index("Metric")
-    st.table(summary_df)
+
+    summary_df = pd.DataFrame(summary_data)
+
+    st.dataframe(summary_df,
+                 use_container_width=True, hide_index=True)
 
 
 # Rest of your code
@@ -235,7 +255,7 @@ def main():
     st.set_page_config(page_title='Mortgage Recycling Calculator', layout='wide')
 
     st.image('resources/banner2.png', use_column_width=True)
-    side_bar()
+    # side_bar()
 
     st.session_state.mortgage = None
 

@@ -180,7 +180,7 @@ class Mortgage:
         df = pd.read_csv(csv_path)
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
-            cpi = 0.9 if row['cpi']=='Yes' else 0
+            cpi = CPI if row['cpi']=='Yes' else 0
             loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
                         row['grace_period'], cpi)
             loans.append(loan)
