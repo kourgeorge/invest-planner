@@ -93,7 +93,7 @@ def mortgage_recycle_report():
 
     # Add number input in the second column
     with col2:
-        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=100000)
+        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=100000, max_value=mortgage.loan_amount())
 
     # Add selection list in the third column
     with col3:
@@ -146,19 +146,19 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
 
     st.divider()
-    summary_section2(mortgage_before, mortgage_after)
-    st.divider()
+    summary_section(mortgage_before, mortgage_after)
 
+    st.divider()
+    plot_monthly_interest_graph_yearly(yearly_amortization_before, yearly_amortization_after)
+
+    st.divider()
     plot_monthly_payments_graph_yearly(yearly_amortization_before, yearly_amortization_after)
 
     st.divider()
     plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after)
 
-    st.divider()
-    plot_monthly_interest_graph_yearly(yearly_amortization_before, yearly_amortization_after)
 
-
-def summary_section(mortgage_before, mortgage_after):
+def bars_summary_section(mortgage_before, mortgage_after):
     # Function to display the bar graphs
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -188,7 +188,7 @@ def summary_section(mortgage_before, mortgage_after):
         }, color=['#eb7734'])
 
 
-def summary_section2(mortgage_before, mortgage_after):
+def summary_section(mortgage_before, mortgage_after):
     # Function to calculate relevant information
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -197,18 +197,19 @@ def summary_section2(mortgage_before, mortgage_after):
     last_interest_payment_before = yearly_amortization_before["Interest Payment"].sum()
     last_interest_payment_after = yearly_amortization_after["Interest Payment"].sum()
 
+
     # Display the summary table
     st.subheader("Recycle Summary:")
 
     summary_data = {
-        "Metric": ["Amount", "Period (Month)", "Interest Payment", "Avg. Interest Rate", "Monthly Payment"],
-        "Before": [mortgage_before.loan_amount(), int(mortgage_before.num_of_months()), last_interest_payment_before,
+        "Metric": ["Cost", "Period (Month)", "Interest Payment", "Avg. Interest Rate", "Monthly Payment"],
+        "Before": [np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()), last_interest_payment_before,
                    np.round(mortgage_before.average_interest_rate(), 2),
                    np.round(mortgage_before.average_monthly_payment())],
-        "After": [mortgage_after.loan_amount(), int(mortgage_after.num_of_months()), last_interest_payment_after,
+        "After": [np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()), last_interest_payment_after,
                   np.round(mortgage_after.average_interest_rate(), 2),
                   np.round(mortgage_after.average_monthly_payment())],
-        "Savings": [mortgage_before.loan_amount() - mortgage_after.loan_amount(),
+        "Savings": [np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
                     int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
                     last_interest_payment_before - last_interest_payment_after,
                     np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),

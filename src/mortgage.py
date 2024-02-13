@@ -17,7 +17,7 @@ class Mortgage:
         for i, loan in enumerate(self.loans, start=1):
             # Calculate additional information
             total_loan_amount = loan.total_payments()
-            interest_per_dollar = loan.total_payments() / loan.loan_amount()
+            interest_per_dollar = loan.cost_per_currency
 
             # Append details to the list
             loan_details.append([
@@ -38,7 +38,7 @@ class Mortgage:
             self.num_of_months(),
             self.average_interest_rate(), '', '', self.average_monthly_payment(),
             self.total_interest_payments(), self.total_payments(),
-            self.total_payments() / self.loan_amount()
+            self.cost_per_currency()
         ])
 
         headers = ["Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
@@ -55,7 +55,7 @@ class Mortgage:
         for i, loan in enumerate(self.loans, start=1):
             # Calculate additional information
             total_loan_amount = loan.total_payments()
-            interest_per_dollar = loan.total_payments() / loan.loan_amount()
+            cost_per_currency = loan.cost_per_currency()
 
             # Append details to the list
             loan_details.append([
@@ -69,7 +69,7 @@ class Mortgage:
                 "{:,.0f}".format(loan.average_monthly_payment()),
                 "{:,.0f}".format(loan.total_interest_payments()),
                 "{:,.0f}".format(total_loan_amount),
-                "{:,.2f}".format(interest_per_dollar)
+                "{:,.2f}".format(cost_per_currency)
             ])
 
         loan_details.append([
@@ -77,7 +77,7 @@ class Mortgage:
             f'{self.num_of_months()} ({np.round(self.num_of_months() / 12, 1)} y)',
             "{:,.2f}%".format(self.average_interest_rate()), '', '', "{:,.0f}".format(self.average_monthly_payment()),
             "{:,.0f}".format(self.total_interest_payments()), "{:,.0f}".format(self.total_payments()),
-            "{:,.2f}".format(self.total_payments() / self.loan_amount())
+            "{:,.2f}".format(self.cost_per_currency())
         ])
 
         # Define column headers
@@ -142,9 +142,14 @@ class Mortgage:
     def average_monthly_payment(self):
         return np.sum([loan.average_monthly_payment() for loan in self.loans if loan.loan_amount() > 0])
 
+    def cost_per_currency(self):
+        if self.loan_amount() >= 0:
+            return self.total_payments() / self.loan_amount()
+        return 0
+
     def average_interest_rate(self):
         weighted_interest_rates = [loan.amount * loan.interest_rate for loan in self.loans]
-        weighted_average_interest_rate = sum(weighted_interest_rates)/ self.loan_amount()
+        weighted_average_interest_rate = sum(weighted_interest_rates) / self.loan_amount()
         return weighted_average_interest_rate
 
     def total_interest_payments(self, month=None):
@@ -180,13 +185,12 @@ class Mortgage:
         df = pd.read_csv(csv_path)
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
-            cpi = CPI if row['cpi']=='Yes' else 0
+            cpi = CPI if row['cpi'] == 'Yes' else 0
             loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
                         row['grace_period'], cpi)
             loans.append(loan)
 
         return Mortgage(loans)
-
 
     def write_csv(self, csv_path):
         # Create a list of dictionaries to store loan information
@@ -219,7 +223,12 @@ class Mortgage:
         while remainder > 0:
             cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
             loan_index = cost_per_currency.index(max(cost_per_currency))
-            remainder = recycled_mortgage.loans[loan_index].apply_extra_payment(remainder, change)
+            target_loan = recycled_mortgage.loans[loan_index]
+            loan_payback = min([MortgageRecycleIterationAmount, remainder, target_loan.loan_amount()])
+            remainder -= loan_payback
+            payback_remainder = target_loan.apply_extra_payment(loan_payback, change)
+
+            print(f'{target_loan.loan_type} after:{remainder} paid:{loan_payback} remainder:{payback_remainder}')
             if change.lower() == 'period':
                 if recycled_mortgage.average_monthly_payment() < previous_monthly_payment:
                     cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
@@ -233,11 +242,7 @@ class Mortgage:
                                                                             remainder_monthly_payment)
                     target_loan.set_period(new_period)
 
-        # Create a new Mortgage instance with the updated loans and amortization schedule
-        recycled_mortgage.loans = [loan for loan in recycled_mortgage.loans if loan.loan_amount() > 0]
-        recycled_mortgage.amortization_schedule = recycled_mortgage.generate_amortization_schedule()
-
-        return recycled_mortgage
+        return Mortgage([loan for loan in recycled_mortgage.loans])
 
     @staticmethod
     def amortization_diff(mortgage_before, mortgage_after):
