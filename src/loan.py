@@ -7,7 +7,6 @@ from constants import CPI
 
 class Loan:
     def __init__(self, amount, num_of_months, interest_rate, loan_type='Shpitzer', grace_period=0, cpi=CPI):
-        print("Create loan")
         assert grace_period < num_of_months
         self.loan_type = loan_type
         self.amount = amount
