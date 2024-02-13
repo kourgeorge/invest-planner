@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import tabulate
 from loan import Loan
+from constants import *
 
 
 class Mortgage:
@@ -174,12 +175,14 @@ class Mortgage:
         self.loans.append(loan)
         self.amortization_schedule = self.generate_amortization_schedule()
 
-    def read_csv(self, csv_path):
+    @staticmethod
+    def read_csv(csv_path):
         df = pd.read_csv(csv_path)
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
+            cpi = 0.9 if row['cpi']=='Yes' else 0
             loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
-                        row['grace_period'])
+                        row['grace_period'], cpi)
             loans.append(loan)
 
         return Mortgage(loans)
@@ -194,7 +197,8 @@ class Mortgage:
                 'num_of_months': loan.num_of_months(),
                 'interest_rate': loan.average_interest_rate(),
                 'loan_type': loan.loan_type,
-                'grace_period': loan.grace_period
+                'grace_period': loan.grace_period,
+                'cpi': loan.cpi
             })
 
         # Create a DataFrame from the list of loan dictionaries
