@@ -1,9 +1,7 @@
 import copy
-
 import numpy as np
 import pandas as pd
 import tabulate
-from graphs import *
 from loan import Loan
 
 
@@ -11,6 +9,43 @@ class Mortgage:
     def __init__(self, loans):
         self.loans = loans
         self.amortization_schedule = self.generate_amortization_schedule()
+
+    def get_mortgage_info(self):
+        loan_details = []
+
+        for i, loan in enumerate(self.loans, start=1):
+            # Calculate additional information
+            total_loan_amount = loan.total_payments()
+            interest_per_dollar = loan.total_payments() / loan.loan_amount()
+
+            # Append details to the list
+            loan_details.append([
+                loan.loan_type,
+                loan.loan_amount(),
+                loan.num_of_months(),
+                loan.interest_rate,
+                loan.cpi,
+                loan.grace_period,
+                loan.average_monthly_payment(),
+                loan.total_interest_payments(),
+                total_loan_amount,
+                interest_per_dollar
+            ])
+
+        loan_details.append([
+            'Total Mortgage', self.loan_amount(),
+            self.num_of_months(),
+            self.average_interest_rate(), '', '', self.average_monthly_payment(),
+            self.total_interest_payments(), self.total_payments(),
+            self.total_payments() / self.loan_amount()
+        ])
+
+        headers = ["Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
+                   "Grace Period", "Avg. Monthly Payment", "Total Interest", "Total Cost", "Cost to Currency"]
+
+        df = pd.DataFrame(loan_details, columns=headers)
+
+        return df
 
     def display_mortgage_info(self):
         # Initialize a list to store the loan details
@@ -48,9 +83,13 @@ class Mortgage:
         headers = ["Loan #", "Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
                    "Grace Period", "Avg. Monthly Payment", "Total Interest", "Total Cost", "Cost to Currency"]
 
+        df = pd.DataFrame(loan_details, columns=headers)
+
         # Print the tabulated information
         print("\nMortgage Details:")
         print(tabulate.tabulate(loan_details, headers=headers, tablefmt="pretty"))
+
+        return df
 
     def generate_amortization_schedule(self):
         # Determine the maximum number of months across all loans
@@ -103,8 +142,8 @@ class Mortgage:
         return np.sum([loan.average_monthly_payment() for loan in self.loans if loan.loan_amount() > 0])
 
     def average_interest_rate(self):
-        weighted_interest_rates = [loan.amount / self.loan_amount() * loan.interest_rate for loan in self.loans]
-        weighted_average_interest_rate = sum(weighted_interest_rates)
+        weighted_interest_rates = [loan.amount * loan.interest_rate for loan in self.loans]
+        weighted_average_interest_rate = sum(weighted_interest_rates)/ self.loan_amount()
         return weighted_average_interest_rate
 
     def total_interest_payments(self, month=None):
@@ -135,8 +174,37 @@ class Mortgage:
         self.loans.append(loan)
         self.amortization_schedule = self.generate_amortization_schedule()
 
+    def read_csv(self, csv_path):
+        df = pd.read_csv(csv_path)
+        loans = []
+        for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
+            loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
+                        row['grace_period'])
+            loans.append(loan)
+
+        return Mortgage(loans)
+
+
+    def write_csv(self, csv_path):
+        # Create a list of dictionaries to store loan information
+        loan_data = []
+        for loan in self.loans:
+            loan_data.append({
+                'amount': loan.loan_amount(),
+                'num_of_months': loan.num_of_months(),
+                'interest_rate': loan.average_interest_rate(),
+                'loan_type': loan.loan_type,
+                'grace_period': loan.grace_period
+            })
+
+        # Create a DataFrame from the list of loan dictionaries
+        df = pd.DataFrame(loan_data)
+
+        # Write the DataFrame to a CSV file
+        df.to_csv(csv_path, index=False)
+
     @staticmethod
-    def recycle_mortgage(mortgage, extra_payment, change='monthly_payment'):
+    def recycle_mortgage(mortgage, extra_payment, change='payment'):
 
         recycled_mortgage = copy.deepcopy(mortgage)
         previous_monthly_payment = recycled_mortgage.average_monthly_payment()
@@ -148,7 +216,7 @@ class Mortgage:
             cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
             loan_index = cost_per_currency.index(max(cost_per_currency))
             remainder = recycled_mortgage.loans[loan_index].apply_extra_payment(remainder, change)
-            if change == 'period':
+            if change.lower() == 'period':
                 if recycled_mortgage.average_monthly_payment() < previous_monthly_payment:
                     cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
                     loan_index = cost_per_currency.index(max(cost_per_currency))

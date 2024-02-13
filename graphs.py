@@ -106,7 +106,7 @@ def plot_compare_investment_revenue_graph_yearly(investments, field='Net Revenue
     plt.figure(figsize=(12, 6))
 
     for i, investment in enumerate(investments):
-        amortization_schedule = investment.generate_amortization_schedule(30)
+        amortization_schedule = investment.generate_amortization_schedule(20)
         yearly_amortization = Investment.get_yearly_amortization(amortization_schedule)
         plt.plot(yearly_amortization.index + 1, yearly_amortization[field],
                  label=f'{investment.name}')

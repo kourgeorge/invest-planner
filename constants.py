@@ -4,5 +4,5 @@ RentalMonthlyRatio = 0.8
 TaxGainPercentage = 0.25
 TaxBuyingPercentage = 0.08
 RealEstateYearlyAppreciation = 4
-StocksMarketYearlyReturn = 4
+StocksMarketYearlyReturn = 8
 StocksMarketFeesPercentage = 0.7

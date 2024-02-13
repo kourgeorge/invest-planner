@@ -1,4 +1,4 @@
-from graphs import *
+import pandas as pd
 from constants import *
 from loan import Loan
 from mortgage import Mortgage
@@ -25,7 +25,7 @@ class Investment:
 
 
 class StocksMarketInvestment(Investment):
-    def __init__(self, initial_fund, yearly_return, yearly_fee_percent=StocksMarketFeesPercentage,
+    def __init__(self, initial_fund, yearly_return=StocksMarketYearlyReturn, yearly_fee_percent=StocksMarketFeesPercentage,
                  gain_tax=TaxGainPercentage, monthly_extra=0,
                  name='Stock Market'):
         self.name = name
@@ -170,7 +170,7 @@ class RealEstateInvestment(Investment):
                           buying_costs=0):
         loan = Loan(amount=price - down_payment, interest_rate=interest_rate,
                     num_of_months=mortgage_num_years * 12)
-        investment = RealEstateInvestment(price=price, initial_fund=down_payment, mortgage=loan,
+        investment = RealEstateInvestment(price=price, initial_fund=down_payment, mortgage=Mortgage([loan]),
                                           appreciation_rate=appreciation_rate,
                                           monthly_rental_income=monthly_rental_income, buying_costs=buying_costs)
 
@@ -178,19 +178,25 @@ class RealEstateInvestment(Investment):
 
 
 class MortgageRecycleInvestment(Investment):
-    def __init__(self, initial_fund, mortgage: Mortgage, investment_yearly_return,
+    def __init__(self, initial_fund, mortgage: Mortgage, investment_yearly_return=StocksMarketYearlyReturn,
                  stocks_yearly_fee_percent=StocksMarketFeesPercentage, name='Mortgage Recycle',
-                 gain_tax=TaxGainPercentage):
+                 gain_tax=TaxGainPercentage, change='monthly_payment'):
         self.name = name
         self.initial_fund = initial_fund
-        self.mortgage = mortgage
+        self.old_mortgage = mortgage
+        self.change = change
+        self.recycled_mortgage = Mortgage.recycle_mortgage(self.old_mortgage, extra_payment=self.initial_fund,
+                                                           change=change)
+
         self.investment_yearly_return = investment_yearly_return
         self.yearly_fee_percent = stocks_yearly_fee_percent
         self.gain_tax = gain_tax
 
+    def get_recycled_mortgage(self):
+        return self.recycled_mortgage
+
     def generate_amortization_schedule(self, investment_num_years):
-        after_mortgage = Mortgage.recycle_mortgage(self.mortgage, extra_payment=self.initial_fund)
-        diff_amortization_schedule = Mortgage.amortization_diff(self.mortgage, after_mortgage)
+        diff_amortization_schedule = Mortgage.amortization_diff(self.old_mortgage, self.recycled_mortgage)
 
         current_asset_price = 0
         amortization_schedule = []

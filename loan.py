@@ -3,11 +3,11 @@ import pandas as pd
 import numpy_financial as npf
 
 from constants import CPI
-from graphs import *
 
 
 class Loan:
     def __init__(self, amount, num_of_months, interest_rate, loan_type='Shpitzer', grace_period=0, cpi=CPI):
+        print("Create loan")
         assert grace_period < num_of_months
         self.loan_type = loan_type
         self.amount = amount
@@ -68,6 +68,9 @@ class Loan:
 
     def num_of_months(self):
         return self._num_of_months
+
+    def average_interest_rate(self):
+        return self.interest_rate
 
     def set_period(self, num_of_months):
         assert num_of_months >= 0
@@ -156,11 +159,10 @@ class Loan:
 
         return yearly_amortization
 
-
-if __name__ == '__main__':
-    loan = Loan(loan_type="Mortgage", amount=300000, num_of_months=360, interest_rate=4.5, grace_period=0)
-    print_amortization_schedule(loan.amortization_schedule)
-    plot_interest_principal_graph_yearly(loan.amortization_schedule)
-
-    period = Loan.calculate_loan_period(amount=300000, interest_rate=4.5, monthly_payment=3143)
-    x = 1
+# if __name__ == '__main__':
+#     loan = Loan(loan_type="Mortgage", amount=300000, num_of_months=360, interest_rate=4.5, grace_period=0)
+#     print_amortization_schedule(loan.amortization_schedule)
+#     plot_interest_principal_graph_yearly(loan.amortization_schedule)
+#
+#     period = Loan.calculate_loan_period(amount=300000, interest_rate=4.5, monthly_payment=3143)
+#     x = 1
