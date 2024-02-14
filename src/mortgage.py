@@ -189,9 +189,8 @@ class Mortgage:
 
         return remaining
 
-
     @staticmethod
-    def from_dataframe(df:pd.DataFrame, cpi=CPI):
+    def from_dataframe(df: pd.DataFrame, cpi=CPI):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
             cpi_actual = cpi if row['cpi'] == 'Yes' else 0
@@ -220,8 +219,8 @@ class Mortgage:
     @staticmethod
     def recycle_mortgage(mortgage, extra_payment, change='payment'):
 
-        recycled_mortgage = copy.deepcopy(mortgage)
-        old_highest_monthly_payment = recycled_mortgage.highest_monthly_payment()
+        recycled_mortgage:Mortgage = copy.deepcopy(mortgage)
+        first_monthly_payment = recycled_mortgage.monthly_payment(0)
         # Calculate cost per dollar for each loan
 
         remainder = extra_payment
@@ -233,19 +232,21 @@ class Mortgage:
             loan_payback = min([MortgageRecycleIterationAmount, remainder, target_loan.loan_amount()])
             remainder -= loan_payback
             payback_remainder = recycled_mortgage.payback_loan(loan_index, loan_payback, change=change)
+            assert payback_remainder == 0
+            remainder += payback_remainder
             print(f'{target_loan.loan_type} after:{remainder} paid:{loan_payback} remainder:{payback_remainder}')
             if change.lower() == 'period':
-                monthly_payment_remainder = recycled_mortgage.highest_monthly_payment() - old_highest_monthly_payment
-                if monthly_payment_remainder > 0:
+                monthly_payment_remainder = first_monthly_payment - recycled_mortgage.monthly_payment(0)
+
+                # assert monthly_payment_remainder > 0
+                # do not do a change if the monthly payment remainder is not significant
+                if monthly_payment_remainder > MortgageRecycleIterationAmount / 100:
                     cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
                     loan_index = cost_per_currency.index(max(cost_per_currency))
-                    remainder_monthly_payment = old_highest_monthly_payment - recycled_mortgage.highest_monthly_payment()
-
                     target_loan = recycled_mortgage.loans[loan_index]
                     new_period = Loan.calculate_loan_period(amount=target_loan.loan_amount(),
                                                             interest_rate=target_loan.interest_rate,
-                                                            monthly_payment=target_loan.highest_monthly_payment() +
-                                                                            remainder_monthly_payment)
+                                                            monthly_payment=target_loan.monthly_payment(0))
                     target_loan.set_period(new_period)
 
         return Mortgage([loan for loan in recycled_mortgage.loans])
