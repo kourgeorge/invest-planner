@@ -1,0 +1,11 @@
+altair
+investpy
+matplotlib
+numpy
+numpy_financial
+pandas
+scipy
+seaborn
+streamlit
+tabulate
+yfinance
