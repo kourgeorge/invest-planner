@@ -323,7 +323,7 @@ def parameters_bar():
 def main():
     st.set_page_config(page_title='Mortgage Recycling Calculator', layout='wide')
 
-    st.image('resources/banner2.png', use_column_width=True)
+    st.image('resources/banner.png', use_column_width=True)
 
     st.session_state.mortgage_df = None
 
