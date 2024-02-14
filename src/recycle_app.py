@@ -345,6 +345,9 @@ def main():
 
     main_mortgage_recycle_report()
 
+    st.divider()
+    st.write("© All rights reserved to George Kour. PhD. (2024). --versio=0.3")
+
 
 if __name__ == "__main__":
     main()
