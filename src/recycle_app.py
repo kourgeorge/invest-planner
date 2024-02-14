@@ -162,13 +162,21 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
 
     yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
     yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
-    st.subheader("Interest Savings (+Investments):")
-    st.line_chart({"Savings(Payment)": yearly_amortization_payment['Monthly Extra'].cumsum(),
-                   "Savings(Period)": yearly_amortization_period['Monthly Extra'].cumsum(),
-                   "Investment(Payment)": yearly_amortization_payment['Net Revenue'],
-                   "Investment(Period)": yearly_amortization_period['Net Revenue']},
-                  color=['#336699', '#ff4599', '#cc9900', '#66cc99'])
 
+    col1,col2 = st.columns([1,1])
+    with col1:
+
+        st.subheader("Monthly Savings:")
+        st.line_chart({"Savings(Payment)": yearly_amortization_payment['Monthly Extra'].cumsum(),
+                   "Savings(Period)": yearly_amortization_period['Monthly Extra'].cumsum()},
+                  color=['#336699', '#66cc99'])
+
+    with col2:
+        st.subheader("Monthly Savings - Invested:")
+        st.line_chart({"Investment(Payment)": yearly_amortization_payment['Net Revenue'],
+                       "Investment(Period)": yearly_amortization_period['Net Revenue']},
+                      color=['#336699', '#66cc99'])
+        #'#ff4599', '#cc9900',
 
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
     with st.expander("Mortgage Info", expanded=False):
