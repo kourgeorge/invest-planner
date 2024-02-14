@@ -210,7 +210,7 @@ class MortgageRecycleInvestment(Investment):
         for month in range(1, investment_num_months + 1):
             previous_asset_price = current_asset_price
             monthly_saving = 0 if month > diff_mortgage_length else diff_amortization_schedule.at[
-                month - 1, 'Interest Payment']
+                month - 1, 'Monthly Payment']
             current_asset_price = previous_asset_price * (1 + monthly_return) + monthly_saving
             total_savings += monthly_saving
             investment_interest = previous_asset_price * monthly_return

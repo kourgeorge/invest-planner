@@ -134,13 +134,16 @@ class Mortgage:
         return sum(loan.amount for loan in self.loans)
 
     def monthly_payment(self, month):
-        if month > 0 and month < self.num_of_months():
+        if month >= 0 and month < self.num_of_months():
             return self.amortization_schedule.loc[month, 'Monthly Payment'].sum()
         else:
             return 0
 
     def average_monthly_payment(self):
-        return np.sum([loan.average_monthly_payment() for loan in self.loans if loan.loan_amount() > 0])
+        return np.mean(self.amortization_schedule["Monthly Payment"])
+
+    def highest_monthly_payment(self):
+        return np.max(self.amortization_schedule["Monthly Payment"])
 
     def cost_per_currency(self):
         if self.loan_amount() >= 0:
@@ -180,8 +183,15 @@ class Mortgage:
         self.loans.append(loan)
         self.amortization_schedule = self.generate_amortization_schedule()
 
+    def payback_loan(self, loan_index, amount, change):
+        remaining = self.loans[loan_index].apply_extra_payment(amount, change)
+        self.amortization_schedule = self.generate_amortization_schedule()
+
+        return remaining
+
+
     @staticmethod
-    def load_dataframe(df:pd.DataFrame, cpi=CPI):
+    def from_dataframe(df:pd.DataFrame, cpi=CPI):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
             cpi_actual = cpi if row['cpi'] == 'Yes' else 0
@@ -191,7 +201,7 @@ class Mortgage:
 
         return Mortgage(loans)
 
-    def save_dataframe(self) -> pd.DataFrame:
+    def to_dataframe(self) -> pd.DataFrame:
         # Create a list of dictionaries to store loan information
         loans_data = []
         for loan in self.loans:
@@ -211,7 +221,7 @@ class Mortgage:
     def recycle_mortgage(mortgage, extra_payment, change='payment'):
 
         recycled_mortgage = copy.deepcopy(mortgage)
-        previous_monthly_payment = recycled_mortgage.average_monthly_payment()
+        old_highest_monthly_payment = recycled_mortgage.highest_monthly_payment()
         # Calculate cost per dollar for each loan
 
         remainder = extra_payment
@@ -222,19 +232,19 @@ class Mortgage:
             target_loan = recycled_mortgage.loans[loan_index]
             loan_payback = min([MortgageRecycleIterationAmount, remainder, target_loan.loan_amount()])
             remainder -= loan_payback
-            payback_remainder = target_loan.apply_extra_payment(loan_payback, change)
-
+            payback_remainder = recycled_mortgage.payback_loan(loan_index, loan_payback, change=change)
             print(f'{target_loan.loan_type} after:{remainder} paid:{loan_payback} remainder:{payback_remainder}')
             if change.lower() == 'period':
-                if recycled_mortgage.average_monthly_payment() < previous_monthly_payment:
+                monthly_payment_remainder = recycled_mortgage.highest_monthly_payment() - old_highest_monthly_payment
+                if monthly_payment_remainder > 0:
                     cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
                     loan_index = cost_per_currency.index(max(cost_per_currency))
-                    remainder_monthly_payment = previous_monthly_payment - recycled_mortgage.average_monthly_payment()
+                    remainder_monthly_payment = old_highest_monthly_payment - recycled_mortgage.highest_monthly_payment()
 
                     target_loan = recycled_mortgage.loans[loan_index]
                     new_period = Loan.calculate_loan_period(amount=target_loan.loan_amount(),
                                                             interest_rate=target_loan.interest_rate,
-                                                            monthly_payment=target_loan.average_monthly_payment() +
+                                                            monthly_payment=target_loan.highest_monthly_payment() +
                                                                             remainder_monthly_payment)
                     target_loan.set_period(new_period)
 

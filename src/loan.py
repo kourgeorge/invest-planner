@@ -89,6 +89,9 @@ class Loan:
     def average_monthly_payment(self):
         return self.amortization_schedule['Monthly Payment'].mean()
 
+    def highest_monthly_payment(self):
+        return np.max(self.amortization_schedule["Monthly Payment"])
+
     def total_interest_payments(self, months=None):
         if months is not None:
             return self.amortization_schedule.loc[:months, 'Interest Payment'].sum()
@@ -109,7 +112,7 @@ class Loan:
             return self.total_payments() / self.loan_amount()
         return 0
 
-    def apply_extra_payment(self, extra_payment, change='monthly_payment'):
+    def apply_extra_payment(self, extra_payment, change='payment'):
         # Ensure extra payment is non-negative
         if extra_payment < 0:
             raise ValueError("Extra payment should be non-negative.")
@@ -121,12 +124,12 @@ class Loan:
             return extra_payment - previous_amount
         else:
             self.amount -= extra_payment
-        if change == 'period':
+        if change.lower() == 'period':
             self._num_of_months = Loan.calculate_loan_period(self.amount, self.interest_rate,
                                                              monthly_payment=previous_monthly_payment)
 
         self.amortization_schedule = self.generate_amortization_schedule()
-        return extra_payment - previous_amount
+        return previous_amount - extra_payment
 
     @staticmethod
     def calculate_loan_period(amount, interest_rate, monthly_payment):

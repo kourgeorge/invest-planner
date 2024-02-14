@@ -114,7 +114,7 @@ def main_mortgage_recycle_report():
     if st.session_state.mortgage_df is None:
         return
     else:
-        mortgage = Mortgage.load_dataframe(st.session_state.mortgage_df, st.session_state.CPI)
+        mortgage = Mortgage.from_dataframe(st.session_state.mortgage_df, st.session_state.CPI)
 
     col1, col2, col3 = st.columns([6, 2, 2])
 
