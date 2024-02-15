@@ -35,22 +35,23 @@ def display_mortgage_info(mortgage):
 
 
 def enter_mortgage_details():
-
     with st.container():
         st.session_state.mortgage_df = st.data_editor(st.session_state.mortgage_df, num_rows="dynamic",
                                                       hide_index=True,
                                                       column_config={
-                                                          'amount': st.column_config.NumberColumn('Amount', required=True),
+                                                          'amount': st.column_config.NumberColumn('Amount',
+                                                                                                  required=True),
                                                           'num_of_months': st.column_config.NumberColumn('Months',
                                                                                                          required=True,
                                                                                                          min_value=0,
                                                                                                          max_value=360,
                                                                                                          default=220),
-                                                          'interest_rate': st.column_config.NumberColumn('Interest Rate',
-                                                                                                         required=True,
-                                                                                                         min_value=0,
-                                                                                                         max_value=20,
-                                                                                                         default=5.1),
+                                                          'interest_rate': st.column_config.NumberColumn(
+                                                              'Interest Rate',
+                                                              required=True,
+                                                              min_value=0,
+                                                              max_value=20,
+                                                              default=5.1),
                                                           'loan_type': st.column_config.TextColumn('Loan Type',
                                                                                                    required=True),
                                                           'grace_period': st.column_config.NumberColumn('Grace Period',
@@ -58,10 +59,12 @@ def enter_mortgage_details():
                                                                                                         min_value=0,
                                                                                                         max_value=50,
                                                                                                         default=0),
-                                                          'cpi': st.column_config.CheckboxColumn(label='CPI', required=True,
+                                                          'cpi': st.column_config.CheckboxColumn(label='CPI',
+                                                                                                 required=True,
                                                                                                  default=True)
                                                       },
-                                                      column_order=['loan_type', 'amount', 'num_of_months', 'interest_rate',
+                                                      column_order=['loan_type', 'amount', 'num_of_months',
+                                                                    'interest_rate',
                                                                     'grace_period', 'cpi'],
                                                       use_container_width=True)
 
@@ -110,31 +113,30 @@ def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortizati
     with col_before:
         st.write("Before")
         st.bar_chart({
-            'Principal Payment': yearly_amortization_before['Principal Payment']//12,
-            'Interest Payment': yearly_amortization_before['Interest Payment']//12
+            'Principal Payment': yearly_amortization_before['Principal Payment'] // 12,
+            'Interest Payment': yearly_amortization_before['Interest Payment'] // 12
         }, color=['#FF5733', '#FFD700'])
 
     # Plot for 'After' in the second column
     with col_after:
         st.write("After")
         st.bar_chart({
-            'Principal Payment': yearly_amortization_after['Principal Payment']//12,
-            'Interest Payment': yearly_amortization_after['Interest Payment']//12
+            'Principal Payment': yearly_amortization_after['Principal Payment'] // 12,
+            'Interest Payment': yearly_amortization_after['Interest Payment'] // 12
         }, color=['#FF5733', '#FFD700'])
 
 
 def plot_monthly_interest_graph_yearly(yearly_amortization_before, yearly_amortization_after):
-    col1, col2 = st.columns([1,1])
+    col1, col2 = st.columns([1, 1])
     with col1:
         st.subheader("Monthly Interest")
-        st.line_chart({"Before": yearly_amortization_before['Interest Payment']//12,
-                       "After": yearly_amortization_after['Interest Payment']//12})
+        st.line_chart({"Before": yearly_amortization_before['Interest Payment'] // 12,
+                       "After": yearly_amortization_after['Interest Payment'] // 12})
 
     with col2:
         st.subheader("Accumulative Interest")
         st.area_chart({"Before": yearly_amortization_before['Interest Payment'].cumsum(),
                        "After": yearly_amortization_after['Interest Payment'].cumsum()})
-
 
 
 def something_else(yearly_amortization_before, yearly_amortization_after):
@@ -218,9 +220,10 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
                                                               name="Mortgage Recycle payment change").generate_amortization_schedule(
         mortgage.num_of_months() // 12 + 10)
 
-    stockmarket_schedule_payment = StocksMarketInvestment(initial_fund=extra_payment, yearly_return=st.session_state.StocksMarketYearlyReturn,
-                           yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
-                 gain_tax=st.session_state.TaxGainPercentage).generate_amortization_schedule(
+    stockmarket_schedule_payment = StocksMarketInvestment(initial_fund=extra_payment,
+                                                          yearly_return=st.session_state.StocksMarketYearlyReturn,
+                                                          yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
+                                                          gain_tax=st.session_state.TaxGainPercentage).generate_amortization_schedule(
         mortgage.num_of_months() // 12 + 10)
 
     yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
@@ -229,17 +232,23 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.subheader(f"Yearly Savings (Agg.): (Extra Payment: {extra_payment})")
+        st.subheader(f"Yearly Savings (Agg.): ")
+        st.write(f'Extra Payment={extra_payment}')
         st.line_chart({"Payment": yearly_amortization_payment['Monthly Extra'].cumsum(),
                        "Period": yearly_amortization_period['Monthly Extra'].cumsum()},
                       color=['#336699', '#66cc99'])
 
     with col2:
-        st.subheader(f"Invested Savings (Agg.): Stocks Return/Fees/Tax [%]={st.session_state.StocksMarketYearlyReturn}/{st.session_state.StocksMarketFeesPercentage}/{st.session_state.TaxGainPercentage} ")
+        st.subheader("Invested Savings (Agg.):")
+        st.write(
+            f"Assuming Stocks Return={st.session_state.StocksMarketYearlyReturn}%, "
+            f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
+            f"Tax{st.session_state.TaxGainPercentage}\%")
         st.line_chart({"Payment": yearly_amortization_payment['Net Revenue'],
                        "Period": yearly_amortization_period['Net Revenue'],
                        f"Stock Market (No recycle)": yearly_amortization_stockmarket['Net Revenue']},
-                      color=['#336699', '#66cc99','#cc9900'])
+                      color=['#336699', '#66cc99', '#cc9900'])
+
         # '#ff4599', '#cc9900',
 
 
@@ -404,9 +413,9 @@ def parameters_bar():
             st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
                                                                           value=constants.StocksMarketFeesPercentage)
         with cols[3]:
-            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage )
+            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage)
         with cols[4]:
-            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage )
+            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
         with cols[5]:
             st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
                                                                             value=constants.RealEstateYearlyAppreciation)
