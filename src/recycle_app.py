@@ -22,7 +22,7 @@ def display_amortization_pane(mortgage, mortgage_after):
     with col1:
         st.subheader("Amortization Tables")
     with col2:
-        amortization_type = st.radio("Type", options=['Montly', "Yearly"])
+        amortization_type = st.radio("Type", options=['Yearly', 'Monthly'])
     with st.expander("Mortgage Amortization", expanded=False):
         col1, _, col2 = st.columns([5, 1, 5])
         with col1:
@@ -179,7 +179,7 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
         #'#ff4599', '#cc9900',
 
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
-    with st.expander("Mortgage Info", expanded=False):
+    with st.expander("Mortgage Info", expanded=True):
         st.subheader("Current Mortgage Details:")
         display_mortgage_info(mortgage_before)
         st.subheader("Recycled Mortgage Details:")
@@ -346,7 +346,12 @@ def main():
     main_mortgage_recycle_report()
 
     st.divider()
-    st.write("© All rights reserved to George Kour. PhD. (2024). --versio=0.3")
+    st.write("© All rights reserved to George Kour. 2024 (v0.3)")
+    st.write("Disclaimer: The use of this mortgage application is at your own risk. "
+             "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
+             "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
+             "We do not assume any responsibility for the accuracy, completeness, or suitability of the information provided. "
+             "By using this application, you acknowledge and accept that your financial decisions are solely your responsibility.")
 
 
 if __name__ == "__main__":
