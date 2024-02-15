@@ -17,7 +17,7 @@ class Mortgage:
         for i, loan in enumerate(self.loans, start=1):
             # Calculate additional information
             total_loan_amount = loan.total_payments()
-            interest_per_dollar = loan.cost_per_currency
+            interest_per_dollar = loan.cost_per_currency()
 
             # Append details to the list
             loan_details.append([
@@ -190,15 +190,46 @@ class Mortgage:
         return remaining
 
     @staticmethod
+    def validate_dataframe(df):
+        expected_columns = list(Mortgage.columns_types().keys())
+        expected_dtypes = {'amount': [int, float], 'num_of_months': [int, float], 'interest_rate': [float],
+                           'loan_type': [str, object],
+                           'grace_period': [int, float], 'cpi': [str, bool, object]}
+
+        if set(expected_columns) != set(df.columns):
+            return False
+
+        for col, dtype in expected_dtypes.items():
+            if df[col].dtype not in dtype:
+                return False
+        return True
+
+    @staticmethod
     def from_dataframe(df: pd.DataFrame, cpi=CPI):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
-            cpi_actual = cpi if row['cpi'] == 'Yes' else 0
-            loan = Loan(row['amount'], row['num_of_months'], row['interest_rate'], row['loan_type'],
-                        row['grace_period'], cpi_actual)
+            cpi_actual = cpi if (isinstance(row['cpi'], str) and row['cpi'] in ['Yes', 'True']) or \
+                                (isinstance(row['cpi'], bool) and bool(row['cpi'])) else 0
+            loan = Loan(row['amount'],
+                        int(row['num_of_months']),
+                        row['interest_rate'],
+                        row['loan_type'],
+                        int(row['grace_period']),
+                        cpi_actual)
             loans.append(loan)
 
         return Mortgage(loans)
+
+    @staticmethod
+    def columns_types():
+        return {
+            'amount': int if int in [int, float] else float,
+            'num_of_months': int if int in [int, float] else float,
+            'interest_rate': float if float in [int, float] else object,
+            'loan_type': str if str in [str, object] else object,
+            'grace_period': int if int in [int, float] else float,
+            'cpi': object,  # Since it can be any of [str, bool, object]
+        }
 
     def to_dataframe(self) -> pd.DataFrame:
         # Create a list of dictionaries to store loan information
@@ -219,7 +250,7 @@ class Mortgage:
     @staticmethod
     def recycle_mortgage(mortgage, extra_payment, change='payment'):
 
-        recycled_mortgage:Mortgage = copy.deepcopy(mortgage)
+        recycled_mortgage: Mortgage = copy.deepcopy(mortgage)
         first_monthly_payment = recycled_mortgage.monthly_payment(0)
         # Calculate cost per dollar for each loan
 

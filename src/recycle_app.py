@@ -13,8 +13,55 @@ import altair as alt
 def display_mortgage_info(mortgage):
     mortgage_info = mortgage.display_mortgage_info()
 
-    st.table(mortgage_info.style.apply(
-        lambda x: ['background-color: #CCCCCC' if x.name == mortgage_info.index[-1] else '' for _ in x], axis=1))
+    def convert_string_to_int(number_string):
+        # Remove commas and convert to int
+        return int(number_string.replace(',', ''))
+
+    def apply_background_color(row):
+        bg_color = ''
+        print(convert_string_to_int(row['Loan Amount']))
+        # Check if the row is the last row
+        if row.name == mortgage_info.index[-1]:
+            bg_color = 'background-color: #E0E0E0'
+
+        # Check if the 'amount' column is equal to 0
+
+        elif convert_string_to_int(row['Loan Amount']) == int(0):
+            bg_color = 'background-color: #add8e6'  # Use 'lightblue' instead of 'blue'
+
+        return [bg_color] * len(row)
+
+    st.table(mortgage_info.style.apply(apply_background_color, axis=1))
+
+
+def enter_mortgage_details():
+    st.session_state.mortgage_df = st.data_editor(st.session_state.mortgage_df, num_rows="dynamic", height=180,
+                                                  hide_index=True,
+                                                  column_config={
+                                                      'amount': st.column_config.NumberColumn('Amount', required=True),
+                                                      'num_of_months': st.column_config.NumberColumn('Months',
+                                                                                                     required=True,
+                                                                                                     min_value=0,
+                                                                                                     max_value=360,
+                                                                                                     default=220),
+                                                      'interest_rate': st.column_config.NumberColumn('Interest Rate',
+                                                                                                     required=True,
+                                                                                                     min_value=0,
+                                                                                                     max_value=20,
+                                                                                                     default=5.1),
+                                                      'loan_type': st.column_config.TextColumn('Loan Type',
+                                                                                               required=True),
+                                                      'grace_period': st.column_config.NumberColumn('Grace Period',
+                                                                                                    required=True,
+                                                                                                    min_value=0,
+                                                                                                    max_value=50,
+                                                                                                    default=0),
+                                                      'cpi': st.column_config.CheckboxColumn(label='CPI', required=True,
+                                                                                             default=True)
+                                                  },
+                                                  column_order=['loan_type', 'amount', 'num_of_months', 'interest_rate',
+                                                                'grace_period', 'cpi'],
+                                                  use_container_width=True)
 
 
 def display_amortization_pane(mortgage, mortgage_after):
@@ -111,11 +158,13 @@ def something_else(yearly_amortization_before, yearly_amortization_after):
 
 
 def main_mortgage_recycle_report():
-    if st.session_state.mortgage_df is None:
+    if st.session_state.mortgage_df is None or not Mortgage.validate_dataframe(st.session_state.mortgage_df) or len(
+            st.session_state.mortgage_df) == 0:
         return
     else:
         mortgage = Mortgage.from_dataframe(st.session_state.mortgage_df, st.session_state.CPI)
 
+    st.divider()
     col1, col2, col3 = st.columns([6, 2, 2])
 
     # Add title in the first column
@@ -124,8 +173,9 @@ def main_mortgage_recycle_report():
 
     # Add number input in the second column
     with col2:
-        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=100000, step=10000,
-                                        max_value=mortgage.loan_amount())
+        steps = int(np.floor(np.min([100000, mortgage.loan_amount() // 10])))
+        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=steps, step=steps,
+                                        max_value=int(np.ceil(mortgage.loan_amount())))
 
     # Add selection list in the third column
     with col3:
@@ -163,27 +213,30 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
     yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
     yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
 
-    col1,col2 = st.columns([1,1])
+    col1, col2 = st.columns([1, 1])
     with col1:
-
         st.subheader("Monthly Savings:")
         st.line_chart({"Savings(Payment)": yearly_amortization_payment['Monthly Extra'].cumsum(),
-                   "Savings(Period)": yearly_amortization_period['Monthly Extra'].cumsum()},
-                  color=['#336699', '#66cc99'])
+                       "Savings(Period)": yearly_amortization_period['Monthly Extra'].cumsum()},
+                      color=['#336699', '#66cc99'])
 
     with col2:
         st.subheader("Monthly Savings - Invested:")
         st.line_chart({"Investment(Payment)": yearly_amortization_payment['Net Revenue'],
                        "Investment(Period)": yearly_amortization_period['Net Revenue']},
                       color=['#336699', '#66cc99'])
-        #'#ff4599', '#cc9900',
+        # '#ff4599', '#cc9900',
+
 
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
     with st.expander("Mortgage Info", expanded=True):
-        st.subheader("Current Mortgage Details:")
-        display_mortgage_info(mortgage_before)
-        st.subheader("Recycled Mortgage Details:")
-        display_mortgage_info(mortgage_after)
+        col1, col2 = st.tabs(['Current', 'Recycled'])
+        with col1:
+            st.subheader("Current Mortgage Details:")
+            display_mortgage_info(mortgage_before)
+        with col2:
+            st.subheader("Recycled Mortgage Details:")
+            display_mortgage_info(mortgage_after)
 
     display_amortization_pane(mortgage_before, mortgage_after)
 
@@ -305,27 +358,36 @@ def summary_section(mortgage_before, mortgage_after):
 
 
 def load_mortgage_csv():
-    uploaded_file = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False)
-    if uploaded_file is not None:
-        st.session_state.file = uploaded_file
-        st.session_state.mortgage_df = pd.read_csv(st.session_state.file)
+    st.session_state.file = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
+                                             label_visibility="hidden")
+
+    if st.session_state.file is not None:
+        st.session_state.mortgage_df = pd.read_csv(st.session_state.file,
+                                                   dtype={'amount': float, 'num_of_months': int, 'interest_rate': float,
+                                                          'loan_type': str,
+                                                          'grace_period': int, 'cpi': str})
+
+        print("Mortgage data loaded successfully!")
 
 
 def parameters_bar():
-    cols = st.columns([1, 1, 1])
-    with cols[0]:
-        st.session_state.CPI = st.number_input("CPI", value=constants.CPI)
-
-        st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
-                                                               value=constants.StocksMarketFeesPercentage)
-    with cols[1]:
-        st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage, )
-        st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage, )
-    with cols[2]:
-        st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
-                                                                 value=constants.RealEstateYearlyAppreciation)
-        st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Market Return",
-                                                             value=constants.StocksMarketYearlyReturn)
+    with st.expander("Parameters", expanded=False):
+        cols = st.columns([1, 1, 1, 1, 1, 1])
+        with cols[0]:
+            st.session_state.CPI = st.number_input("CPI", value=constants.CPI)
+        with cols[1]:
+            st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
+                                                                          value=constants.StocksMarketFeesPercentage)
+        with cols[2]:
+            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage, )
+        with cols[3]:
+            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage, )
+        with cols[4]:
+            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
+                                                                            value=constants.RealEstateYearlyAppreciation)
+        with cols[5]:
+            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Market Return",
+                                                                        value=constants.StocksMarketYearlyReturn)
 
 
 def main():
@@ -333,15 +395,16 @@ def main():
 
     st.image('resources/banner.png', use_column_width=True)
 
-    st.session_state.mortgage_df = None
+    st.session_state.mortgage_df = pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
+        Mortgage.columns_types())
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 2])
     with col1:
-        load_mortgage_csv()
+        with st.expander("Upload Mortgage File"):
+            load_mortgage_csv()
+    enter_mortgage_details()
     with col2:
         parameters_bar()
-
-    st.divider()
 
     main_mortgage_recycle_report()
 
