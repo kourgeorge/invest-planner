@@ -5,5 +5,5 @@ TaxGainPercentage = 25
 TaxBuyingPercentage = 8
 RealEstateYearlyAppreciation = 4
 StocksMarketYearlyReturn = 7.5
-StocksMarketFeesPercentage = 0.07
+StocksMarketFeesPercentage = 0.7
 MortgageRecycleIterationAmount = 10000
