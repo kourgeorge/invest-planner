@@ -28,6 +28,7 @@ class Mortgage:
                 loan.cpi,
                 loan.grace_period,
                 loan.average_monthly_payment(),
+                loan.monthly_payment(0),
                 loan.total_interest_payments(),
                 total_loan_amount,
                 interest_per_dollar
@@ -36,16 +37,15 @@ class Mortgage:
         loan_details.append([
             'Total Mortgage', self.loan_amount(),
             self.num_of_months(),
-            self.average_interest_rate(), '', '', self.average_monthly_payment(),
+            self.average_interest_rate(), '', '', self.average_monthly_payment(), self.monthly_payment(0),
             self.total_interest_payments(), self.total_payments(),
             self.cost_per_currency()
         ])
 
         headers = ["Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
-                   "Grace Period", "Avg. Monthly Payment", "Total Interest", "Total Cost", "Cost to Currency"]
-
+                   "Grace Period", "Avg. Monthly Payment", "First Payment", "Total Interest", "Total Cost",
+                   "Cost to Currency"]
         df = pd.DataFrame(loan_details, columns=headers)
-
         return df
 
     def display_mortgage_info(self):
@@ -67,6 +67,7 @@ class Mortgage:
                 "{}%".format(loan.cpi),
                 loan.grace_period,
                 "{:,.0f}".format(loan.average_monthly_payment()),
+                "{:,.0f}".format(loan.monthly_payment(0)),
                 "{:,.0f}".format(loan.total_interest_payments()),
                 "{:,.0f}".format(total_loan_amount),
                 "{:,.2f}".format(cost_per_currency)
@@ -76,13 +77,14 @@ class Mortgage:
             'Total', 'Mortgage', "{:,.0f}".format(self.loan_amount()),
             f'{self.num_of_months()} ({np.round(self.num_of_months() / 12, 1)} y)',
             "{:,.2f}%".format(self.average_interest_rate()), '', '', "{:,.0f}".format(self.average_monthly_payment()),
+            "{:,.0f}".format(self.monthly_payment(0)),
             "{:,.0f}".format(self.total_interest_payments()), "{:,.0f}".format(self.total_payments()),
             "{:,.2f}".format(self.cost_per_currency())
         ])
 
         # Define column headers
         headers = ["Loan #", "Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
-                   "Grace Period", "Avg. Monthly Payment", "Total Interest", "Total Cost", "Cost to Currency"]
+                   "Grace Period", "Avg. Monthly Payment", "First Payment", "Total Interest", "Total Cost", "Cost to Currency"]
 
         df = pd.DataFrame(loan_details, columns=headers)
 
@@ -208,8 +210,9 @@ class Mortgage:
     def from_dataframe(df: pd.DataFrame, cpi=CPI):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
-            cpi_actual = cpi if (isinstance(row['cpi'], str) and row['cpi'] in ['Yes', 'True']) or \
+            cpi_actual = cpi if (isinstance(row['cpi'], str) and row['cpi'].lower() in ['yes', 'true']) or \
                                 (isinstance(row['cpi'], bool) and bool(row['cpi'])) else 0
+
             loan = Loan(row['amount'],
                         int(row['num_of_months']),
                         row['interest_rate'],
