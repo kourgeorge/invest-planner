@@ -54,7 +54,7 @@ def display_amortization_pane(mortgages):
         amortization_type = st.radio("Type", options=['Annual', 'Monthly'])
 
     with st.expander("Mortgage Amortization", expanded=False):
-        cols = st.columns([1] * len(mortgages), gap="medium")
+        cols = st.columns([1] * len(mortgages), gap="large")
         for i, col in enumerate(cols):
             with col:
                 st.write(f"{mortgages[i].name}")
@@ -82,3 +82,13 @@ def display_mortgage_info(mortgage):
         return [bg_color] * len(row)
 
     st.table(mortgage_info.style.apply(apply_background_color, axis=1))
+
+
+def plot_annual_amortization_monthly_line(mortgages, field):
+    yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
+    st.line_chart({f"{mortgages[i].name}": yearly_amortization[field] // 12 for i, yearly_amortization in
+     enumerate(yearly_amortizations)})
+
+
+recycle_strategy_help = "The recycling strategy. Choosing 'Payment' will decrease your monthly payment while keeping the loan duration constant. " \
+                        "The 'Period' option will maintain a relatively consistent monthly payment but reduce the overall mortgage period"

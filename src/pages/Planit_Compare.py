@@ -83,21 +83,7 @@ def plot_principal_interest_yearly(mortgages):
             }, color=['#FF5733', '#FFD700'])
 
 
-def plot_monthly_interest_graph_yearly(mortgages):
-    yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
 
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.subheader("Monthly Interest")
-        st.line_chart(
-            {f"{mortgages[i].name}": yearly_amortization['Interest Payment'] // 12 for i, yearly_amortization in
-             enumerate(yearly_amortizations)})
-
-    with col2:
-        st.subheader("Accumulative Interest")
-        st.line_chart(
-            {f"{mortgages[i].name}": yearly_amortization['Interest Payment'].cumsum() for i, yearly_amortization in
-             enumerate(yearly_amortizations)})
 
 
 def main_mortgage_comparison_report():
@@ -281,11 +267,11 @@ def load_mortgages_csv(max_files_uploads):
 
 
 def main():
-
     st.session_state.max_num_mortgages = 5
     st.set_page_config(page_title='Mortgage Compare', layout='wide', page_icon="📈")
 
     header()
+    st.title('Mortgage Comparison')
 
     st.session_state.mortgages_df = [
         pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()) for i in range(st.session_state.max_num_mortgages)]
@@ -302,7 +288,7 @@ def main():
     #     st.session_state.mortgages_df.append(pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()))
     #     st.session_state.mortgages_name.append("New Mortgage")
 
-    col1, col2 = st.columns([1, 1])
+    col1, _ = st.columns([2, 1])
     with col1:
         enter_mortgage_details()
 

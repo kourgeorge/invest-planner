@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
+from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info, \
+    recycle_strategy_help, plot_annual_amortization_monthly_line
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
@@ -53,16 +54,34 @@ def display_yearly_amortization_table(mortgage, amortization_type):
     st.table(amortization)
 
 
-def plot_monthly_payments_graph_yearly(yearly_amortization_before, yearly_amortization_after):
+def plot_monthly_payments_graph_yearly(mortgages):
+    yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
+
     col1, col2 = st.columns([1, 1])
     with col1:
         st.subheader("Monthly Payment:")
-        st.line_chart({"Before": yearly_amortization_before['Monthly Payment'],
-                       "After": yearly_amortization_after['Monthly Payment']})
+        plot_annual_amortization_monthly_line(mortgages,'Monthly Payment')
     with col2:
         st.subheader("Remaining Balance:")
-        st.area_chart({"Before": yearly_amortization_before['Remaining Balance'],
-                       "After": yearly_amortization_after['Remaining Balance']})
+        st.area_chart(
+            {f"{mortgages[i].name}": yearly_amortization['Remaining Balance'] for i, yearly_amortization in
+             enumerate(yearly_amortizations)})
+
+
+def plot_monthly_interest_graph_yearly(mortgages):
+    yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.subheader("Monthly Interest")
+        plot_annual_amortization_monthly_line(mortgages, 'Interest Payment')
+
+    with col2:
+        st.subheader("Accumulative Interest")
+        st.line_chart(
+            {f"{mortgages[i].name}": yearly_amortization['Interest Payment'].cumsum() for i, yearly_amortization in
+             enumerate(yearly_amortizations)})
+
 
 
 def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after):
@@ -86,17 +105,6 @@ def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortizati
         }, color=['#FF5733', '#FFD700'])
 
 
-def plot_monthly_interest_graph_yearly(yearly_amortization_before, yearly_amortization_after):
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.subheader("Monthly Interest")
-        st.line_chart({"Before": yearly_amortization_before['Interest Payment'] // 12,
-                       "After": yearly_amortization_after['Interest Payment'] // 12})
-
-    with col2:
-        st.subheader("Accumulative Interest")
-        st.area_chart({"Before": yearly_amortization_before['Interest Payment'].cumsum(),
-                       "After": yearly_amortization_after['Interest Payment'].cumsum()})
 
 
 def something_else(yearly_amortization_before, yearly_amortization_after):
@@ -129,12 +137,12 @@ def something_else(yearly_amortization_before, yearly_amortization_after):
     st.altair_chart(chart, use_container_width=False)
 
 
-def main_mortgage_recycle_report():
+def main_mortgage_recycle_report(extra_payment, change):
     if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df) or len(
             st.session_state.mortgages_df) == 0:
         return
     else:
-        mortgage = Mortgage.from_dataframe(st.session_state.mortgages_df, st.session_state.CPI)
+        mortgage = Mortgage.from_dataframe(st.session_state.mortgages_df, st.session_state.CPI, name="Before")
 
     st.divider()
     col1, col2, col3 = st.columns([6, 2, 2])
@@ -143,17 +151,8 @@ def main_mortgage_recycle_report():
     with col1:
         st.subheader(f"Recycle Information")
 
-    # Add number input in the second column
-    with col2:
-        start_value = int(np.floor(np.min([100000, (mortgage.loan_amount() // 100000) * 10000])))
-        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
-                                        max_value=int(np.ceil(mortgage.loan_amount())))
-
-    # Add selection list in the third column
-    with col3:
-        change = st.selectbox('Select Option:', ['Payment', 'Period'])
-
     mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment, change=change)
+    mortgage_after.name='After'
 
     mortgage_recycle_report_details(mortgage, mortgage_after)
 
@@ -207,7 +206,7 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
                 f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
                 f"Tax={st.session_state.TaxGainPercentage}\%")
         with col_22:
-            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'])
+            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'], help='See Terminology Pane.')
 
         st.line_chart({"Payment": yearly_amortization_payment[investment_field],
                        "Period": yearly_amortization_period[investment_field],
@@ -231,10 +230,10 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
 
     st.divider()
-    plot_monthly_payments_graph_yearly(yearly_amortization_before, yearly_amortization_after)
+    plot_monthly_payments_graph_yearly([mortgage_before, mortgage_after])
 
     st.divider()
-    plot_monthly_interest_graph_yearly(yearly_amortization_before, yearly_amortization_after)
+    plot_monthly_interest_graph_yearly([mortgage_before, mortgage_after])
 
     st.divider()
     plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after)
@@ -353,11 +352,24 @@ def load_mortgage_csv():
         print("Mortgage data loaded successfully!")
 
 
+def invested_savings_options_terminology():
+    with st.expander('Terminology', expanded=False):
+        data = {
+            'Term': ['Total Revenue', 'Net Revenue', 'Monthly Income'],
+            'Meaning': [
+                'The total assets minus the invested equity (initial and monthly).',
+                'Total Revenue after deducting stocks selling taxes.',
+                'The investment gains over 12 months.'
+            ]
+        }
+        df = pd.DataFrame(data)
+        st.table(df.reset_index(drop=True))
+
 def main():
     st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
     header()
-
+    st.title('Mortgage Recycling Calculator')
     st.session_state.mortgages_df = pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
         Mortgage.columns_types())
 
@@ -368,26 +380,22 @@ def main():
     with col2:
         parameters_bar()
 
-    enter_mortgage_details()
+    col1, col2, col3 = st.columns([3, 1,1], gap='large')
+    with col1:
+        enter_mortgage_details()
+    with col2:
+        start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df['amount'].sum() // 100000) * 10000])))
+        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
+                                        max_value= int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
+    # Add selection list in the third column
+    with col3:
+        change = st.selectbox('Select Option:', ['Payment', 'Period'], help=recycle_strategy_help)
 
-    main_mortgage_recycle_report()
+    main_mortgage_recycle_report(extra_payment, change)
 
     st.divider()
-    col1, col3 = st.columns([4, 2])
-    with col1:
-        footer()
-    with col3:
-        st.write('Terminology:')
-        data = {
-            'Term': ['Total Revenue', 'Net Revenue', 'Monthly Income'],
-            'Meaning': [
-                'The total assets minus the invested equity.',
-                'Total revenue after deducting taxes.',
-                'The investment gains over 12 months.'
-            ]
-        }
-        df = pd.DataFrame(data)
-        st.table(df.reset_index(drop=True))
+    invested_savings_options_terminology()
+    footer()
 
 
 if __name__ == "__main__":
