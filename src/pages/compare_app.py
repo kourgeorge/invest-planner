@@ -6,10 +6,11 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 import constants
+from components import footer, header
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
-import altair as alt
+
 
 
 def display_mortgage_info(mortgage):
@@ -353,26 +354,26 @@ def parameters_bar():
 
 def main():
 
-    initial = 3
+    initial = 5
     st.set_page_config(page_title='Mortgage Compare', layout='wide')
 
-    st.image('resources/banner.png', use_column_width=True)
+    header()
 
     st.session_state.mortgages_df = [
         pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()) for i in range(initial)]
     st.session_state.mortgages_name = [f"Mortgage {i + 1}" for i in range(initial)]
 
 
-    col1, col2 = st.columns([1, 3])
+    col1, col2 = st.columns([1, 2])
     with col1:
         with st.expander('Upload Mortgage data', expanded=False):
             load_mortgage_csv()
     with col2:
         parameters_bar()
 
-    if st.button(label='Add another Mortgage'):
-        st.session_state.mortgages_df.append(pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()))
-        st.session_state.mortgages_name.append("New Mortgage")
+    # if st.button(label='Add another Mortgage'):
+    #     st.session_state.mortgages_df.append(pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()))
+    #     st.session_state.mortgages_name.append("New Mortgage")
 
     col1, col2 = st.columns([1, 1])
     with col1:
@@ -381,27 +382,7 @@ def main():
     main_mortgage_comparison_report()
 
     st.divider()
-    col1, col3 = st.columns([4, 2])
-    with col1:
-        st.write("© All rights reserved to George Kour. 2024 (v0.3)")
-        st.write("Disclaimer: The use of this application is at your own risk. "
-                 "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
-                 "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
-                 "We do not assume any responsibility for the accuracy, completeness, or suitability of the information provided. "
-                 "By using this application, you acknowledge and accept that your financial decisions are solely your responsibility.")
-    with col3:
-        st.write('Terminology:')
-        data = {
-            'Term': ['Total Revenue', 'Net Revenue', 'Monthly Income'],
-            'Meaning': [
-                'The total assets minus the invested equity.',
-                'Total revenue after deducting taxes.',
-                'The investment gains over 12 months.'
-            ]
-        }
-        df = pd.DataFrame(data)
-        st.table(df.reset_index(drop=True))
-
+    footer()
 
 if __name__ == "__main__":
     main()

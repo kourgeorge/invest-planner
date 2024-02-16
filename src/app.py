@@ -1,7 +1,8 @@
 import streamlit as st
+from components import footer, header
 
 st.set_page_config(page_title='Planit', layout='wide', page_icon="📈")
-st.image('resources/banner.png', use_column_width=True)
+header()
 
 st.markdown(
     """# Welcome to Planit 📈: Your Mortgage Companion
@@ -33,6 +34,7 @@ Ready to take control of your mortgage journey? Follow these simple steps:
 
 3. **Save and Share:**
     - Save your mortgage scenarios for future reference.
+    - Print a visually appealing and understandable report.
     - Share your findings with trusted advisors or family members.
 
 ## Why Planit?
@@ -49,9 +51,4 @@ Make Planit your financial companion and take the guesswork out of your mortgage
 )
 
 st.divider()
-st.write("© All rights reserved to George Kour. 2024 (v0.3)")
-st.write("Disclaimer: The use of this application is at your own risk. "
-                 "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
-                 "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
-                 "We do not assume any responsibility for the accuracy, completeness, or suitability of the information provided. "
-                 "By using this application, you acknowledge and accept that your financial decisions are solely your responsibility.")
+footer()
