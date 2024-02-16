@@ -1,7 +1,7 @@
 import streamlit as st
 from components import footer, header
 
-st.set_page_config(page_title='Planit', layout='wide', page_icon="📈")
+st.set_page_config(page_title='Planit', page_icon="📈")
 header()
 
 st.markdown(

@@ -1,44 +1,15 @@
-import copy
-
 import numpy as np
 import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import constants
-from components import footer, header
+from components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
 
 
-
-def display_mortgage_info(mortgage):
-    mortgage_info = mortgage.display_mortgage_info()
-
-    def convert_string_to_int(number_string):
-        # Remove commas and convert to int
-        return int(number_string.replace(',', ''))
-
-    def apply_background_color(row):
-        bg_color = ''
-        print(convert_string_to_int(row['Loan Amount']))
-        # Check if the row is the last row
-        if row.name == mortgage_info.index[-1]:
-            bg_color = 'background-color: #E0E0E0'
-
-        # Check if the 'amount' column is equal to 0
-
-        elif convert_string_to_int(row['Loan Amount']) == int(0):
-            bg_color = 'background-color: #add8e6'  # Use 'lightblue' instead of 'blue'
-
-        return [bg_color] * len(row)
-
-    st.table(mortgage_info.style.apply(apply_background_color, axis=1))
-
-
 def enter_mortgage_details():
-    print(f'The number of mortgages={len(st.session_state.mortgages_df)}')
     with st.container():
         if len(st.session_state.mortgages_df) == 0:
             return
@@ -46,8 +17,8 @@ def enter_mortgage_details():
         tabs = st.tabs(st.session_state.mortgages_name)
         for i in range(len(st.session_state.mortgages_df)):
             with tabs[i]:
-                st.session_state.mortgages_name[i] = st.text_input('Name', value=st.session_state.mortgages_name[i])
-                st.session_state.mortgages_df[i] = st.data_editor(st.session_state.mortgages_df[i], key=f'm{i}',
+                st.session_state.mortgages_name[i] = st.text_input('Name', value=st.session_state.mortgages_name[i], key=f'name_{st.session_state.mortgages_name[i]}{i}')
+                st.session_state.mortgages_df[i] = st.data_editor(st.session_state.mortgages_df[i], key=f'data_{st.session_state.mortgages_name[i]}{i}',
                                                                   num_rows="dynamic",
                                                                   hide_index=True,
                                                                   column_config={
@@ -82,29 +53,6 @@ def enter_mortgage_details():
                                                                                'interest_rate',
                                                                                'grace_period', 'cpi'],
                                                                   use_container_width=True)
-
-
-def display_amortization_pane(mortgages):
-    col1, _, col2 = st.columns([5, 1, 5])
-    with col1:
-        st.subheader("Amortization Tables")
-    with col2:
-        amortization_type = st.radio("Type", options=['Yearly', 'Monthly'])
-
-    with st.expander("Mortgage Amortization", expanded=False):
-        cols = st.columns([1] * len(mortgages))
-        for i, col in enumerate(cols):
-            with col:
-                st.write(f"{mortgages[i].name}")
-                display_yearly_amortization_table(mortgages[i], amortization_type)
-
-
-def display_yearly_amortization_table(mortgage, amortization_type):
-    if amortization_type == 'Yearly':
-        amortization = Loan.get_yearly_amortization(mortgage.amortization_schedule.reset_index())
-    else:
-        amortization = mortgage.amortization_schedule
-    st.table(amortization)
 
 
 def plot_monthly_payments_graph_yearly(mortgages):
@@ -316,12 +264,12 @@ def summary_section(mortgages):
                     st.pyplot(fig1, use_container_width=True)
 
 
-def load_mortgage_csv():
+def load_mortgages_csv(max_files_uploads):
     files = st.file_uploader("Load a Mortgages Data", accept_multiple_files=True,
                              label_visibility="hidden", type=['csv', 'txt'])
     if files is None:
         return
-    for i, file in enumerate(files):
+    for i, file in enumerate(files[:max_files_uploads]):
         st.session_state.mortgages_df[i] = pd.read_csv(file,
                                                        dtype={'amount': float, 'num_of_months': int,
                                                              'interest_rate': float,
@@ -332,42 +280,21 @@ def load_mortgage_csv():
         continue
 
 
-def parameters_bar():
-    with st.expander("Parameters", expanded=False):
-        cols = st.columns([1, 1, 1, 1, 1, 1])
-        with cols[0]:
-            st.session_state.CPI = st.number_input("CPI", value=constants.CPI)
-        with cols[1]:
-            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Market Return",
-                                                                        value=constants.StocksMarketYearlyReturn)
-        with cols[2]:
-            st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
-                                                                          value=constants.StocksMarketFeesPercentage)
-        with cols[3]:
-            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage)
-        with cols[4]:
-            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
-        with cols[5]:
-            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
-                                                                            value=constants.RealEstateYearlyAppreciation)
-
-
 def main():
 
-    initial = 5
+    st.session_state.max_num_mortgages = 5
     st.set_page_config(page_title='Mortgage Compare', layout='wide')
 
     header()
 
     st.session_state.mortgages_df = [
-        pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()) for i in range(initial)]
-    st.session_state.mortgages_name = [f"Mortgage {i + 1}" for i in range(initial)]
-
+        pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(Mortgage.columns_types()) for i in range(st.session_state.max_num_mortgages)]
+    st.session_state.mortgages_name = [f"Mortgage {i + 1}" for i in range(st.session_state.max_num_mortgages)]
 
     col1, col2 = st.columns([1, 2])
     with col1:
         with st.expander('Upload Mortgage data', expanded=False):
-            load_mortgage_csv()
+            load_mortgages_csv(st.session_state.max_num_mortgages)
     with col2:
         parameters_bar()
 

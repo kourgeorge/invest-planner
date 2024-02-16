@@ -3,37 +3,11 @@ import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-import constants
-from components import footer, header
+from components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
 import altair as alt
-
-
-
-def display_mortgage_info(mortgage):
-    mortgage_info = mortgage.display_mortgage_info()
-
-    def convert_string_to_int(number_string):
-        # Remove commas and convert to int
-        return int(number_string.replace(',', ''))
-
-    def apply_background_color(row):
-        bg_color = ''
-        print(convert_string_to_int(row['Loan Amount']))
-        # Check if the row is the last row
-        if row.name == mortgage_info.index[-1]:
-            bg_color = 'background-color: #E0E0E0'
-
-        # Check if the 'amount' column is equal to 0
-
-        elif convert_string_to_int(row['Loan Amount']) == int(0):
-            bg_color = 'background-color: #add8e6'  # Use 'lightblue' instead of 'blue'
-
-        return [bg_color] * len(row)
-
-    st.table(mortgage_info.style.apply(apply_background_color, axis=1))
 
 
 def enter_mortgage_details():
@@ -69,22 +43,6 @@ def enter_mortgage_details():
                                                                     'interest_rate',
                                                                     'grace_period', 'cpi'],
                                                        use_container_width=True)
-
-
-def display_amortization_pane(mortgage, mortgage_after):
-    col1, _, col2 = st.columns([5, 1, 5])
-    with col1:
-        st.subheader("Amortization Tables")
-    with col2:
-        amortization_type = st.radio("Type", options=['Yearly', 'Monthly'])
-    with st.expander("Mortgage Amortization", expanded=False):
-        col1, _, col2 = st.columns([5, 1, 5])
-        with col1:
-            st.write("Before:")
-            display_yearly_amortization_table(mortgage, amortization_type)
-        with col2:
-            st.write("After:")
-            display_yearly_amortization_table(mortgage_after, amortization_type)
 
 
 def display_yearly_amortization_table(mortgage, amortization_type):
@@ -282,7 +240,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
     plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after)
 
     st.divider()
-    display_amortization_pane(mortgage_before, mortgage_after)
+    display_amortization_pane([mortgage_before, mortgage_after])
 
 
 def bars_summary_section(mortgage_before, mortgage_after):
@@ -393,26 +351,6 @@ def load_mortgage_csv():
                                                           'grace_period': int, 'cpi': str})
 
         print("Mortgage data loaded successfully!")
-
-
-def parameters_bar():
-    with st.expander("Parameters", expanded=False):
-        cols = st.columns([1, 1, 1, 1, 1, 1])
-        with cols[0]:
-            st.session_state.CPI = st.number_input("CPI", value=constants.CPI)
-        with cols[1]:
-            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Market Return",
-                                                                        value=constants.StocksMarketYearlyReturn)
-        with cols[2]:
-            st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
-                                                                          value=constants.StocksMarketFeesPercentage)
-        with cols[3]:
-            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage)
-        with cols[4]:
-            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
-        with cols[5]:
-            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
-                                                                            value=constants.RealEstateYearlyAppreciation)
 
 
 def main():
