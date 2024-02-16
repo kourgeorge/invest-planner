@@ -7,8 +7,9 @@ from constants import *
 
 
 class Mortgage:
-    def __init__(self, loans):
+    def __init__(self, loans, name="Mortgage"):
         self.loans = loans
+        self.name = name
         self.amortization_schedule = self.generate_amortization_schedule()
 
     def get_mortgage_info(self):
@@ -84,7 +85,8 @@ class Mortgage:
 
         # Define column headers
         headers = ["Loan #", "Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
-                   "Grace Period", "Avg. Monthly Payment", "First Payment", "Total Interest", "Total Cost", "Cost to Currency"]
+                   "Grace Period", "Avg. Monthly Payment", "First Payment", "Total Interest", "Total Cost",
+                   "Cost to Currency"]
 
         df = pd.DataFrame(loan_details, columns=headers)
 
@@ -96,6 +98,16 @@ class Mortgage:
 
     def generate_amortization_schedule(self):
         # Determine the maximum number of months across all loans
+
+        if self.is_empty():
+            return pd.DataFrame([{
+                'Month': 0,
+                'Monthly Payment': 0,
+                'Principal Payment': 0,
+                'Interest Payment': 0,
+                'Remaining Balance': 0
+            }])
+
         max_months = max(loan._num_of_months for loan in self.loans)
 
         amortization_schedule = []
@@ -130,7 +142,7 @@ class Mortgage:
         return mortgage_amortization
 
     def num_of_months(self):
-        return max(loan.num_of_months() for loan in self.loans if loan.loan_amount() > 0)
+        return max(loan.num_of_months() for loan in self.loans if loan.loan_amount() > 0) if not self.is_empty() else 0
 
     def loan_amount(self):
         return sum(loan.amount for loan in self.loans)
@@ -154,7 +166,7 @@ class Mortgage:
 
     def average_interest_rate(self):
         weighted_interest_rates = [loan.amount * loan.interest_rate for loan in self.loans]
-        weighted_average_interest_rate = sum(weighted_interest_rates) / self.loan_amount()
+        weighted_average_interest_rate = sum(weighted_interest_rates) / self.loan_amount() if self.loan_amount()>0 else 0
         return weighted_average_interest_rate
 
     def total_interest_payments(self, month=None):
@@ -191,6 +203,9 @@ class Mortgage:
 
         return remaining
 
+    def is_empty(self):
+        return True if len(self.loans) < 1 else False
+
     @staticmethod
     def validate_dataframe(df):
         expected_columns = list(Mortgage.columns_types().keys())
@@ -207,7 +222,7 @@ class Mortgage:
         return True
 
     @staticmethod
-    def from_dataframe(df: pd.DataFrame, cpi=CPI):
+    def from_dataframe(df: pd.DataFrame, cpi=CPI, name=None):
         loans = []
         for i, row in df.iterrows():  # Use df.iterrows() to iterate through rows
             cpi_actual = cpi if (isinstance(row['cpi'], str) and row['cpi'].lower() in ['yes', 'true']) or \
@@ -221,7 +236,7 @@ class Mortgage:
                         cpi_actual)
             loans.append(loan)
 
-        return Mortgage(loans)
+        return Mortgage(loans, name=name) if name else Mortgage(loans)
 
     @staticmethod
     def columns_types():
