@@ -1,3 +1,4 @@
+import numpy as np
 import streamlit as st
 
 import constants
@@ -37,11 +38,11 @@ def parameters_bar():
                                                                             value=constants.RealEstateYearlyAppreciation)
 
 
-def display_yearly_amortization_table(mortgage, amortization_type):
+def display_amortization_table(mortgage, amortization_type):
     if amortization_type == 'Annual':
-        amortization = Loan.get_yearly_amortization(mortgage.amortization_schedule.reset_index())
+        amortization = Loan.get_yearly_amortization(mortgage.amortization_schedule)
     else:
-        amortization = mortgage.amortization_schedule
+        amortization = np.round(mortgage.amortization_schedule.astype(int))
     st.table(amortization.set_index('Month'))
 
 
@@ -57,7 +58,7 @@ def display_amortization_pane(mortgages):
         for i, col in enumerate(cols):
             with col:
                 st.write(f"{mortgages[i].name}")
-                display_yearly_amortization_table(mortgages[i], amortization_type)
+                display_amortization_table(mortgages[i], amortization_type)
 
 
 def display_mortgage_info(mortgage):

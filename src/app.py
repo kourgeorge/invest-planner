@@ -1,5 +1,5 @@
 import streamlit as st
-from components import footer, header
+from common_components import footer, header
 
 st.set_page_config(page_title='Planit', page_icon="📈")
 header()

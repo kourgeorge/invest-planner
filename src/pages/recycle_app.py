@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
+from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
@@ -354,7 +354,7 @@ def load_mortgage_csv():
 
 
 def main():
-    st.set_page_config(page_title='Mortgage Recycling', layout='wide')
+    st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
     header()
 
