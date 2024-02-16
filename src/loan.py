@@ -156,7 +156,7 @@ class Loan:
     def get_yearly_amortization(amortization_schedule):
         yearly_amortization = amortization_schedule.groupby(amortization_schedule.index // 12).agg({
             'Month': 'last',
-            'Monthly Payment': 'mean',
+            'Monthly Payment': 'sum',
             'Principal Payment': 'sum',
             'Interest Payment': 'sum',
             'Remaining Balance': 'last'  # Take the last value for Remaining Balance
