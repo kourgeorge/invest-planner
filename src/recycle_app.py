@@ -185,8 +185,8 @@ def main_mortgage_recycle_report():
 
     # Add number input in the second column
     with col2:
-        steps = int(np.floor(np.min([100000, mortgage.loan_amount() // 10])))
-        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=steps, step=steps,
+        start_value = int(np.floor(np.min([100000, (mortgage.loan_amount() // 100000) * 10000])))
+        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
                                         max_value=int(np.ceil(mortgage.loan_amount())))
 
     # Add selection list in the third column
@@ -239,17 +239,20 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
                       color=['#336699', '#66cc99'])
 
     with col2:
-        st.subheader("Invested Savings (Agg.):")
-        st.write(
-            f"Assuming Stocks Return={st.session_state.StocksMarketYearlyReturn}%, "
-            f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
-            f"Tax{st.session_state.TaxGainPercentage}\%")
-        st.line_chart({"Payment": yearly_amortization_payment['Net Revenue'],
-                       "Period": yearly_amortization_period['Net Revenue'],
-                       f"Stock Market (No recycle)": yearly_amortization_stockmarket['Net Revenue']},
-                      color=['#336699', '#66cc99', '#cc9900'])
+        col_21, col_22 = st.columns([1, 1])
+        with col_21:
+            st.subheader("Invested Savings (Agg.):")
+            col_21.write(
+                f"Assuming Stocks Return={st.session_state.StocksMarketYearlyReturn}%, "
+                f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
+                f"Tax={st.session_state.TaxGainPercentage}\%")
+        with col_22:
+            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'])
 
-        # '#ff4599', '#cc9900',
+        st.line_chart({"Payment": yearly_amortization_payment[investment_field],
+                       "Period": yearly_amortization_period[investment_field],
+                       f"Stock Market (No recycle)": yearly_amortization_stockmarket[investment_field]},
+                      color=['#336699', '#66cc99', '#cc9900'])
 
 
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
@@ -281,7 +284,6 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
 
 
 def bars_summary_section(mortgage_before, mortgage_after):
-    # Function to display the bar graphs
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
 
@@ -315,8 +317,6 @@ def summary_section(mortgage_before, mortgage_after):
     total_interest_payment_before = mortgage_before.total_interest_payments()
     total_interest_payment_after = mortgage_after.total_interest_payments()
 
-    # st.subheader("Summary:")
-
     summary_data = {
         "Metric": ["Cost", "Period (Month)", "Interest Payment", "Avg. Interest Rate", "Monthly Payment"],
         "Before": [np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
@@ -334,13 +334,8 @@ def summary_section(mortgage_before, mortgage_after):
                     np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment())]
     }
 
-    # Function to highlight the maximum value in each column
-    # def highlight_max(s):
-    #     is_max = s == s.max()
-    #     return ['font-weight: bold; background-color: #CCCCCC' if v else '' for v in is_max]
 
     summary_df = pd.DataFrame(summary_data)
-    # styled_summary_df = summary_df.style.apply(highlight_max, subset=['Savings'])
 
     explode = (0, 0.1)
 
@@ -383,9 +378,6 @@ def summary_section(mortgage_before, mortgage_after):
                 shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
         ax2.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
         st.pyplot(fig2, use_container_width=True)
-
-
-# Rest of your code
 
 
 def load_mortgage_csv():
@@ -441,12 +433,26 @@ def main():
     main_mortgage_recycle_report()
 
     st.divider()
-    st.write("© All rights reserved to George Kour. 2024 (v0.3)")
-    st.write("Disclaimer: The use of this mortgage application is at your own risk. "
-             "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
-             "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
-             "We do not assume any responsibility for the accuracy, completeness, or suitability of the information provided. "
-             "By using this application, you acknowledge and accept that your financial decisions are solely your responsibility.")
+    col1, col3 = st.columns([4, 2])
+    with col1:
+        st.write("© All rights reserved to George Kour. 2024 (v0.3)")
+        st.write("Disclaimer: The use of this application is at your own risk. "
+                 "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
+                 "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
+                 "We do not assume any responsibility for the accuracy, completeness, or suitability of the information provided. "
+                 "By using this application, you acknowledge and accept that your financial decisions are solely your responsibility.")
+    with col3:
+        st.write('Terminology:')
+        data = {
+            'Term': ['Total Revenue', 'Net Revenue', 'Monthly Income'],
+            'Meaning': [
+                'The total assets minus the invested equity.',
+                'Total revenue after deducting taxes.',
+                'The investment gains over 12 months.'
+            ]
+        }
+        df = pd.DataFrame(data)
+        st.table(df.reset_index(drop=True))
 
 
 if __name__ == "__main__":
