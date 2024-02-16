@@ -36,9 +36,9 @@ def display_mortgage_info(mortgage):
 
 def enter_mortgage_details():
     with st.container():
-        st.session_state.mortgage_df = st.data_editor(st.session_state.mortgage_df, num_rows="dynamic",
-                                                      hide_index=True,
-                                                      column_config={
+        st.session_state.mortgages_df = st.data_editor(st.session_state.mortgages_df, num_rows="dynamic",
+                                                       hide_index=True,
+                                                       column_config={
                                                           'amount': st.column_config.NumberColumn('Amount',
                                                                                                   required=True),
                                                           'num_of_months': st.column_config.NumberColumn('Months',
@@ -63,10 +63,10 @@ def enter_mortgage_details():
                                                                                                  required=True,
                                                                                                  default=True)
                                                       },
-                                                      column_order=['loan_type', 'amount', 'num_of_months',
+                                                       column_order=['loan_type', 'amount', 'num_of_months',
                                                                     'interest_rate',
                                                                     'grace_period', 'cpi'],
-                                                      use_container_width=True)
+                                                       use_container_width=True)
 
 
 def display_amortization_pane(mortgage, mortgage_after):
@@ -170,11 +170,11 @@ def something_else(yearly_amortization_before, yearly_amortization_after):
 
 
 def main_mortgage_recycle_report():
-    if st.session_state.mortgage_df is None or not Mortgage.validate_dataframe(st.session_state.mortgage_df) or len(
-            st.session_state.mortgage_df) == 0:
+    if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df) or len(
+            st.session_state.mortgages_df) == 0:
         return
     else:
-        mortgage = Mortgage.from_dataframe(st.session_state.mortgage_df, st.session_state.CPI)
+        mortgage = Mortgage.from_dataframe(st.session_state.mortgages_df, st.session_state.CPI)
 
     st.divider()
     col1, col2, col3 = st.columns([6, 2, 2])
@@ -339,7 +339,7 @@ def summary_section(mortgage_before, mortgage_after):
 
     explode = (0, 0.1)
 
-    col1, col_gap, col2, col3 = st.columns([6, 1, 2, 2])
+    col1, col_gap, col2, col3 = st.columns([5, 1, 1, 1])
     width = 3
     height = 3
     with col1:
@@ -381,12 +381,12 @@ def summary_section(mortgage_before, mortgage_after):
 
 
 def load_mortgage_csv():
-    st.session_state.file = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
-                                             label_visibility="hidden")
+    st.session_state.files = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
+                                              label_visibility="hidden")
 
-    if st.session_state.file is not None:
-        st.session_state.mortgage_df = pd.read_csv(st.session_state.file,
-                                                   dtype={'amount': float, 'num_of_months': int, 'interest_rate': float,
+    if st.session_state.files is not None:
+        st.session_state.mortgages_df = pd.read_csv(st.session_state.files,
+                                                    dtype={'amount': float, 'num_of_months': int, 'interest_rate': float,
                                                           'loan_type': str,
                                                           'grace_period': int, 'cpi': str})
 
@@ -418,7 +418,7 @@ def main():
 
     st.image('resources/banner.png', use_column_width=True)
 
-    st.session_state.mortgage_df = pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
+    st.session_state.mortgages_df = pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
         Mortgage.columns_types())
 
     col1, col2 = st.columns([1, 2])
