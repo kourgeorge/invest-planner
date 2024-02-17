@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info, \
+from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
     recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
@@ -219,17 +219,19 @@ def merge_mortgages_info(mortgage_before, mortgage_after):
     # Create a new DataFrame with formatted values
     formatted_df = pd.DataFrame()
     formatted_df['Loan Type'] = merged_df['Loan Type']
-    formatted_df['Repayment'] = (df_before['Loan Amount'].astype(int) - df_after['Loan Amount'].astype(int)).astype(
-        str)
-    formatted_df['Payment Change'] = (df_before['First Payment'].astype(int) - df_after['First Payment'].astype(int)).astype(
-        str)
+
     for column in columns_to_include:
-        formatted_df[column] = merged_df[column + '_before'].astype(int).astype(str) + ' → ' + merged_df[column + '_after'].astype(int).astype(str)
-
+        formatted_df[column] = merged_df.apply(
+            lambda row: "{:,.0f} → {:,.0f} \t({:,.0f})".format((row[f'{column}_before']),
+                                                               (row[f'{column}_after']),
+                                                               (row[f'{column}_after']) - (
+                                                                   row[f'{column}_before'])),
+            axis=1)
     formatted_df['Cost to Currency'] = merged_df.apply(
-        lambda row: "{:,.2f} → {:,.2f}".format(float(row['Cost to Currency_before']),
-                                               float(row['Cost to Currency_after'])), axis=1)
-
+        lambda row: "{:,.2f} → {:,.2f} ({:,.2f})".format((row['Cost to Currency_before']),
+                                                         (row['Cost to Currency_after']),
+                                                         (row['Cost to Currency_after']) - (
+                                                             row['Cost to Currency_before'])), axis=1)
 
     return formatted_df
 
@@ -241,7 +243,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
 
     summary_section(mortgage_before, mortgage_after)
 
-    with st.expander("Loans Recycling Info", expanded=True):
+    with st.expander("Loans Recycling Details", expanded=True):
         # col1, col2 = st.columns([1,1])
         # with col1:
         # st.subheader("Current Mortgage Details:")
@@ -250,7 +252,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
         # st.subheader("Recycled Mortgage Details:")
         # display_mortgage_info(mortgage_after)
         merged = merge_mortgages_info(mortgage_before, mortgage_after)
-        st.table(merged)
+        display_table_with_total_row(merged)
 
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -325,11 +327,7 @@ def summary_section(mortgage_before, mortgage_after):
 
     summary_df = pd.DataFrame(summary_data)
 
-    explode = (0, 0.1)
-
     col1, col_gap, col2, col3 = st.columns([4, 0.5, 1, 1])
-    width = 3
-    height = 3
     with col1:
         st.dataframe(summary_df,
                      use_container_width=True, hide_index=True)
@@ -349,39 +347,6 @@ def summary_section(mortgage_before, mortgage_after):
         st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][2]),
                   delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%',
                   delta_color='inverse')
-
-    #     st.write('Before')
-    #
-    #     fig1, ax1 = plt.subplots(figsize=(width, height))
-    #     ax1.pie([mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()],
-    #             explode=explode,
-    #             labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
-    #             shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
-    #     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    #     st.pyplot(fig1, use_container_width=True)
-    #
-    #     # # Altair chart
-    #     # data = {
-    #     #     'Category': ['Interest', 'Principle'],
-    #     #     'Values': [mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()]
-    #     # }
-    #     # df = pd.DataFrame(data)
-    #     # chart = alt.Chart(df).mark_arc(size=200).encode(
-    #     #  theta ='Values',
-    #     # color='Category'
-    #     # )
-    #     #
-    #     # # Display the Altair pie chart using st.altair_chart
-    #     # st.altair_chart(chart, use_container_width=True)
-    #
-    # with col3:
-    #     st.write('After')
-    #     fig2, ax2 = plt.subplots(figsize=(width, height))
-    #     ax2.pie([mortgage_after.total_interest_payments(), mortgage_after.total_principal_payments()], explode=explode,
-    #             labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
-    #             shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
-    #     ax2.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-    #     st.pyplot(fig2, use_container_width=True)
 
 
 def load_mortgage_csv():
@@ -413,6 +378,7 @@ def invested_savings_options_terminology():
 
 
 def main():
+
     st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
     header()
@@ -440,7 +406,7 @@ def main():
                                                 key="monthly_extra")
     # Add selection list in the third column
     with col3:
-        change = st.selectbox('Select Option:', ['Payment', 'Period'], help=recycle_strategy_help)
+        change = st.selectbox('Select Option:', ['Payment', 'Period'], help=recycle_strategy_help, disabled=(extra_payment==0))
 
     main_mortgage_recycle_report(extra_payment, extra_payment_monthly, change)
 

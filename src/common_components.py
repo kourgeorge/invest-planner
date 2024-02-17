@@ -22,20 +22,20 @@ def parameters_bar():
     with st.expander("Parameters", expanded=False):
         cols = st.columns([1, 1, 1, 1, 1, 1])
         with cols[0]:
-            st.session_state.CPI = st.number_input("CPI", value=constants.CPI)
+            st.session_state.CPI = st.number_input("CPI", value=constants.CPI, help="Expected Customer Price Index")
         with cols[1]:
-            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Market Return",
-                                                                        value=constants.StocksMarketYearlyReturn)
+            st.session_state.StocksMarketYearlyReturn = st.number_input("SM Return %",
+                                                                        value=constants.StocksMarketYearlyReturn, help='Expected Annual Stocks Market Returns')
         with cols[2]:
-            st.session_state.StocksMarketFeesPercentage = st.number_input("Stocks Market Fees %",
-                                                                          value=constants.StocksMarketFeesPercentage)
+            st.session_state.StocksMarketFeesPercentage = st.number_input("Trading Fees %",
+                                                                          value=constants.StocksMarketFeesPercentage, help='Annual Stocks Market Fees %')
         with cols[3]:
             st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage)
         with cols[4]:
             st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
         with cols[5]:
-            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation",
-                                                                            value=constants.RealEstateYearlyAppreciation)
+            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation %",
+                                                                            value=constants.RealEstateYearlyAppreciation, help="Expected Real Estate Annual Price Appreciation")
 
 
 def display_amortization_table(mortgage, amortization_type):
@@ -66,19 +66,13 @@ def convert_string_to_int(number_string):
         return int(number_string.replace(',', ''))
 
 
-def display_mortgage_info(mortgage):
-    mortgage_info = mortgage.display_mortgage_info()
+def display_table_with_total_row(mortgage_info):
 
     def apply_background_color(row):
         bg_color = ''
         # Check if the row is the last row
         if row.name == mortgage_info.index[-1]:
             bg_color = 'background-color: #E0E0E0'
-
-        # Check if the 'amount' column is equal to 0
-
-        elif convert_string_to_int(row['Loan Amount']) == int(0):
-            bg_color = 'background-color: #add8e6'  # Use 'lightblue' instead of 'blue'
 
         return [bg_color] * len(row)
 

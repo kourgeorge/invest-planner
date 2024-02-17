@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info
+from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
@@ -169,7 +169,7 @@ def mortgage_comparison_report_details(mortgages):
     with st.expander("Mortgages Info", expanded=True):
         for mortgage in mortgages:
             st.subheader(f"Mortgage Details: {mortgage.name}")
-            display_mortgage_info(mortgage)
+            display_table_with_total_row(mortgage.display_mortgage_info())
 
     st.divider()
     plot_monthly_payments_graph_yearly(mortgages)
