@@ -145,16 +145,16 @@ def main_mortgage_recycle_report(extra_payment, extra_monthly, change):
     mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment,
                                                change=change) if extra_payment > 0 else mortgage
     mortgage_after = Mortgage.recycle_mortgage_monthly(mortgage=mortgage_after,
-                                                       extra_payment=extra_monthly) if extra_monthly > 0 else mortgage_after
+                                                       extra_payment=extra_monthly) if extra_monthly != 0 else mortgage_after
     mortgage_after.name = 'After'
 
     mortgage_recycle_report_details(mortgage, mortgage_after)
 
     st.divider()
-    saving_investment(mortgage, extra_payment)
+    saving_investment(mortgage, extra_payment, extra_monthly)
 
 
-def saving_investment(mortgage: Mortgage, extra_payment: int):
+def saving_investment(mortgage: Mortgage, extra_payment: int, monthly_extra:int=0):
     amortization_schedule_period = MortgageRecycleInvestment(initial_fund=extra_payment,
                                                              mortgage=mortgage,
                                                              investment_yearly_return=st.session_state.StocksMarketYearlyReturn,
@@ -400,7 +400,7 @@ def main():
         start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df['amount'].sum() // 100000) * 10000])))
         extra_payment = st.number_input('Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
                                         max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
-        extra_payment_monthly = st.number_input('Monthly Extra:', min_value=-1000, value=0,
+        extra_payment_monthly = st.number_input('Monthly Extra:', min_value=-2000, value=0,
                                                 step=start_value // 1000,
                                                 max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())),
                                                 key="monthly_extra")
