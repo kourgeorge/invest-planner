@@ -333,10 +333,10 @@ def summary_section(mortgage_before, mortgage_after):
                   delta=f'{-np.round(summary_df["Savings"][0] / summary_df["Before"][0] * 100, 2)}%',
                   delta_color='inverse')
     with col3:
-        st.metric(label='Avg. Monthly Payment', value="{:,.0f}".format(summary_df["After"][4]),
-                  delta=f'{np.round(summary_df["After"][4] - summary_df["Before"][4])} ILS', delta_color='inverse')
+        st.metric(label='First Monthly Payment', value="{:,.0f}".format(summary_df["After"][5]),
+                  delta=f'{np.round(summary_df["After"][5] - summary_df["Before"][5])} ILS', delta_color='inverse')
         st.write('')
-        st.metric(label='Period Change (months)', value="{:,.0f}".format(summary_df["Savings"][1]),
+        st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][1]),
                   delta=f'{-np.round(summary_df["Savings"][1] / summary_df["Before"][1] * 100, 2)}%', delta_color='inverse')
 
     #     st.write('Before')
