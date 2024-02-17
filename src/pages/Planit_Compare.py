@@ -7,6 +7,7 @@ from common_components import footer, header, parameters_bar, display_amortizati
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
+from pages.Planit_Recycle import plot_monthly_interest_graph_yearly
 
 
 def enter_mortgage_details():
