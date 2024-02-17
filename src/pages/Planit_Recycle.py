@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_mortgage_info, \
-    recycle_strategy_help, plot_annual_amortization_monthly_line
+    recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
@@ -16,33 +16,33 @@ def enter_mortgage_details():
         st.session_state.mortgages_df = st.data_editor(st.session_state.mortgages_df, num_rows="dynamic",
                                                        hide_index=True,
                                                        column_config={
-                                                          'amount': st.column_config.NumberColumn('Amount',
-                                                                                                  required=True),
-                                                          'num_of_months': st.column_config.NumberColumn('Months',
+                                                           'amount': st.column_config.NumberColumn('Amount',
+                                                                                                   required=True),
+                                                           'num_of_months': st.column_config.NumberColumn('Months',
+                                                                                                          required=True,
+                                                                                                          min_value=0,
+                                                                                                          max_value=360,
+                                                                                                          default=220),
+                                                           'interest_rate': st.column_config.NumberColumn(
+                                                               'Interest Rate',
+                                                               required=True,
+                                                               min_value=0,
+                                                               max_value=20,
+                                                               default=5.1),
+                                                           'loan_type': st.column_config.TextColumn('Loan Type',
+                                                                                                    required=True),
+                                                           'grace_period': st.column_config.NumberColumn('Grace Period',
                                                                                                          required=True,
                                                                                                          min_value=0,
-                                                                                                         max_value=360,
-                                                                                                         default=220),
-                                                          'interest_rate': st.column_config.NumberColumn(
-                                                              'Interest Rate',
-                                                              required=True,
-                                                              min_value=0,
-                                                              max_value=20,
-                                                              default=5.1),
-                                                          'loan_type': st.column_config.TextColumn('Loan Type',
-                                                                                                   required=True),
-                                                          'grace_period': st.column_config.NumberColumn('Grace Period',
-                                                                                                        required=True,
-                                                                                                        min_value=0,
-                                                                                                        max_value=50,
-                                                                                                        default=0),
-                                                          'cpi': st.column_config.CheckboxColumn(label='CPI',
-                                                                                                 required=True,
-                                                                                                 default=True)
-                                                      },
+                                                                                                         max_value=50,
+                                                                                                         default=0),
+                                                           'cpi': st.column_config.CheckboxColumn(label='CPI',
+                                                                                                  required=True,
+                                                                                                  default=True)
+                                                       },
                                                        column_order=['loan_type', 'amount', 'num_of_months',
-                                                                    'interest_rate',
-                                                                    'grace_period', 'cpi'],
+                                                                     'interest_rate',
+                                                                     'grace_period', 'cpi'],
                                                        use_container_width=True)
 
 
@@ -60,7 +60,7 @@ def plot_monthly_payments_graph_yearly(mortgages):
     col1, col2 = st.columns([1, 1])
     with col1:
         st.subheader("Monthly Payment:")
-        plot_annual_amortization_monthly_line(mortgages,'Monthly Payment')
+        plot_annual_amortization_monthly_line(mortgages, 'Monthly Payment')
     with col2:
         st.subheader("Remaining Balance:")
         st.area_chart(
@@ -78,10 +78,9 @@ def plot_monthly_interest_graph_yearly(mortgages):
 
     with col2:
         st.subheader("Accumulative Interest")
-        st.line_chart(
+        st.area_chart(
             {f"{mortgages[i].name}": yearly_amortization['Interest Payment'].cumsum() for i, yearly_amortization in
              enumerate(yearly_amortizations)})
-
 
 
 def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after):
@@ -103,8 +102,6 @@ def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortizati
             'Principal Payment': yearly_amortization_after['Principal Payment'] // 12,
             'Interest Payment': yearly_amortization_after['Interest Payment'] // 12
         }, color=['#FF5733', '#FFD700'])
-
-
 
 
 def something_else(yearly_amortization_before, yearly_amortization_after):
@@ -137,22 +134,18 @@ def something_else(yearly_amortization_before, yearly_amortization_after):
     st.altair_chart(chart, use_container_width=False)
 
 
-def main_mortgage_recycle_report(extra_payment, change):
+def main_mortgage_recycle_report(extra_payment, extra_monthly, change):
     if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df) or len(
             st.session_state.mortgages_df) == 0:
         return
     else:
         mortgage = Mortgage.from_dataframe(st.session_state.mortgages_df, st.session_state.CPI, name="Before")
 
-    st.divider()
-    col1, col2, col3 = st.columns([6, 2, 2])
-
-    # Add title in the first column
-    with col1:
-        st.subheader(f"Recycle Information")
-
-    mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment, change=change)
-    mortgage_after.name='After'
+    mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment,
+                                               change=change) if extra_payment > 0 else mortgage
+    mortgage_after = Mortgage.recycle_mortgage_monthly(mortgage=mortgage_after,
+                                                       extra_payment=extra_monthly) if extra_monthly > 0 else mortgage_after
+    mortgage_after.name = 'After'
 
     mortgage_recycle_report_details(mortgage, mortgage_after)
 
@@ -191,22 +184,23 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
 
     col1, col2 = st.columns([1, 1])
     with col1:
-        st.subheader(f"Yearly Savings (Agg.): ")
+        st.subheader(f"Annual Payment Savings (Acc.): ")
         st.write(f'Extra Payment={extra_payment}')
         st.line_chart({"Payment": yearly_amortization_payment['Monthly Extra'].cumsum(),
                        "Period": yearly_amortization_period['Monthly Extra'].cumsum()},
                       color=['#336699', '#66cc99'])
 
     with col2:
-        col_21, col_22 = st.columns([1, 1])
+        col_21, col_22 = st.columns([3, 1])
         with col_21:
-            st.subheader("Invested Savings (Agg.):")
+            st.subheader("Investing Payment Savings (Acc.):")
             col_21.write(
                 f"Assuming Stocks Return={st.session_state.StocksMarketYearlyReturn}%, "
                 f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
                 f"Tax={st.session_state.TaxGainPercentage}\%")
         with col_22:
-            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'], help='See Terminology Pane.')
+            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'],
+                                            help='See Terminology Pane.')
 
         st.line_chart({"Payment": yearly_amortization_payment[investment_field],
                        "Period": yearly_amortization_period[investment_field],
@@ -214,17 +208,42 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
                       color=['#336699', '#66cc99', '#cc9900'])
 
 
+def merge_mortgages_info(df_before, df_after):
+    # Merge dataframes on 'Loan #'
+    merged_df = pd.merge(df_before, df_after, on='Loan #', suffixes=('_before', '_after'))
+
+    columns_to_include = ['Loan Amount', 'Number of Months', 'First Payment', 'Total Interest',
+                          'Total Cost', 'Cost to Currency']
+    # Create a new DataFrame with formatted values
+    formatted_df = pd.DataFrame()
+    formatted_df['Loan #'] = merged_df['Loan #']
+    formatted_df['Loan Type'] = merged_df['Loan Type_before']
+    formatted_df['Amount diff'] = df_before['Loan Amount'].apply(convert_string_to_int).astype(int) - df_after[
+        'Loan Amount'].apply(convert_string_to_int).astype(int)
+    for column in columns_to_include:
+        formatted_df[column] = merged_df[column + '_before'].astype(str) + ' → ' + merged_df[column + '_after'].astype(str)
+
+
+    return formatted_df
+
+
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
+    st.divider()
+
+    st.subheader(f"Recycle Information")
+
     summary_section(mortgage_before, mortgage_after)
 
-    with st.expander("Mortgage Info", expanded=True):
+    with st.expander("Loans Recycling Info", expanded=True):
         # col1, col2 = st.columns([1,1])
         # with col1:
-        st.subheader("Current Mortgage Details:")
-        display_mortgage_info(mortgage_before)
-        # with col2:
-        st.subheader("Recycled Mortgage Details:")
-        display_mortgage_info(mortgage_after)
+        # st.subheader("Current Mortgage Details:")
+        # display_mortgage_info(mortgage_before)
+        # # with col2:
+        # st.subheader("Recycled Mortgage Details:")
+        # display_mortgage_info(mortgage_after)
+        merged = merge_mortgages_info(mortgage_before.display_mortgage_info(), mortgage_after.display_mortgage_info())
+        st.table(merged)
 
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -277,66 +296,81 @@ def summary_section(mortgage_before, mortgage_after):
     total_interest_payment_after = mortgage_after.total_interest_payments()
 
     summary_data = {
-        "Metric": ["Cost", "Period (Month)", "Interest Payment", "Avg. Interest Rate", "Monthly Payment"],
+        "Metric": ["Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
+                   "First Payment"],
         "Before": [np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
                    np.round(total_interest_payment_before),
                    np.round(mortgage_before.average_interest_rate(), 2),
-                   np.round(mortgage_before.average_monthly_payment())],
+                   np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0))],
         "After": [np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
                   np.round(total_interest_payment_after),
                   np.round(mortgage_after.average_interest_rate(), 2),
-                  np.round(mortgage_after.average_monthly_payment())],
+                  np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0))],
         "Savings": [np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
                     int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
                     np.round(total_interest_payment_before - total_interest_payment_after),
                     np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
-                    np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment())]
+                    np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment()),
+                    np.round(mortgage_before.monthly_payment(0) - mortgage_after.monthly_payment(0))]
     }
-
 
     summary_df = pd.DataFrame(summary_data)
 
     explode = (0, 0.1)
 
-    col1, col_gap, col2, col3 = st.columns([5, 1, 1, 1])
+    col1, col_gap, col2, col3 = st.columns([4, 0.5, 1, 1])
     width = 3
     height = 3
     with col1:
         st.dataframe(summary_df,
                      use_container_width=True, hide_index=True)
     with col2:
-        st.write('Before')
+        st.metric(label='Interest Savings', value="{:,.0f}".format(summary_df["Savings"][2]),
+                  delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%', delta_color='inverse')
+        st.write('')
 
-        fig1, ax1 = plt.subplots(figsize=(width, height))
-        ax1.pie([mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()],
-                explode=explode,
-                labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
-                shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
-        ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-        st.pyplot(fig1, use_container_width=True)
-
-        # # Altair chart
-        # data = {
-        #     'Category': ['Interest', 'Principle'],
-        #     'Values': [mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()]
-        # }
-        # df = pd.DataFrame(data)
-        # chart = alt.Chart(df).mark_arc(size=200).encode(
-        #  theta ='Values',
-        # color='Category'
-        # )
-        #
-        # # Display the Altair pie chart using st.altair_chart
-        # st.altair_chart(chart, use_container_width=True)
-
+        st.metric(label='Cost Savings', value="{:,.0f}".format(summary_df["Savings"][0]),
+                  delta=f'{-np.round(summary_df["Savings"][0] / summary_df["Before"][0] * 100, 2)}%',
+                  delta_color='inverse')
     with col3:
-        st.write('After')
-        fig2, ax2 = plt.subplots(figsize=(width, height))
-        ax2.pie([mortgage_after.total_interest_payments(), mortgage_after.total_principal_payments()], explode=explode,
-                labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
-                shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
-        ax2.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-        st.pyplot(fig2, use_container_width=True)
+        st.metric(label='Avg. Monthly Payment', value="{:,.0f}".format(summary_df["After"][4]),
+                  delta=f'{np.round(summary_df["After"][4] - summary_df["Before"][4])} ILS', delta_color='inverse')
+        st.write('')
+        st.metric(label='Period Change (months)', value="{:,.0f}".format(summary_df["Savings"][1]),
+                  delta=f'{-np.round(summary_df["Savings"][1] / summary_df["Before"][1] * 100, 2)}%', delta_color='inverse')
+
+    #     st.write('Before')
+    #
+    #     fig1, ax1 = plt.subplots(figsize=(width, height))
+    #     ax1.pie([mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()],
+    #             explode=explode,
+    #             labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
+    #             shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
+    #     ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    #     st.pyplot(fig1, use_container_width=True)
+    #
+    #     # # Altair chart
+    #     # data = {
+    #     #     'Category': ['Interest', 'Principle'],
+    #     #     'Values': [mortgage_before.total_interest_payments(), mortgage_before.total_principal_payments()]
+    #     # }
+    #     # df = pd.DataFrame(data)
+    #     # chart = alt.Chart(df).mark_arc(size=200).encode(
+    #     #  theta ='Values',
+    #     # color='Category'
+    #     # )
+    #     #
+    #     # # Display the Altair pie chart using st.altair_chart
+    #     # st.altair_chart(chart, use_container_width=True)
+    #
+    # with col3:
+    #     st.write('After')
+    #     fig2, ax2 = plt.subplots(figsize=(width, height))
+    #     ax2.pie([mortgage_after.total_interest_payments(), mortgage_after.total_principal_payments()], explode=explode,
+    #             labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
+    #             shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
+    #     ax2.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+    #     st.pyplot(fig2, use_container_width=True)
 
 
 def load_mortgage_csv():
@@ -345,9 +379,10 @@ def load_mortgage_csv():
 
     if st.session_state.files is not None:
         st.session_state.mortgages_df = pd.read_csv(st.session_state.files,
-                                                    dtype={'amount': float, 'num_of_months': int, 'interest_rate': float,
-                                                          'loan_type': str,
-                                                          'grace_period': int, 'cpi': str})
+                                                    dtype={'amount': float, 'num_of_months': int,
+                                                           'interest_rate': float,
+                                                           'loan_type': str,
+                                                           'grace_period': int, 'cpi': str})
 
         print("Mortgage data loaded successfully!")
 
@@ -365,6 +400,7 @@ def invested_savings_options_terminology():
         df = pd.DataFrame(data)
         st.table(df.reset_index(drop=True))
 
+
 def main():
     st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
@@ -380,18 +416,22 @@ def main():
     with col2:
         parameters_bar()
 
-    col1, col2, col3 = st.columns([3, 1,1], gap='large')
+    col1, col2, col3 = st.columns([3, 1, 1], gap='large')
     with col1:
         enter_mortgage_details()
     with col2:
         start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df['amount'].sum() // 100000) * 10000])))
-        extra_payment = st.number_input('Enter Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
-                                        max_value= int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
+        extra_payment = st.number_input('Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
+                                        max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
+        extra_payment_monthly = st.number_input('Monthly Extra:', min_value=-1000, value=0,
+                                                step=start_value // 1000,
+                                                max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())),
+                                                key="monthly_extra")
     # Add selection list in the third column
     with col3:
         change = st.selectbox('Select Option:', ['Payment', 'Period'], help=recycle_strategy_help)
 
-    main_mortgage_recycle_report(extra_payment, change)
+    main_mortgage_recycle_report(extra_payment, extra_payment_monthly, change)
 
     st.divider()
     invested_savings_options_terminology()

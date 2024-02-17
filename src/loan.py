@@ -80,6 +80,8 @@ class Loan:
 
     def set_amount(self, amount):
         self.amount = amount
+        if amount == 0:
+            self.set_period(0)
         self.amortization_schedule = self.generate_amortization_schedule()
 
     def monthly_payment(self, month):
@@ -122,7 +124,7 @@ class Loan:
         previous_monthly_payment = self.monthly_payment(0)
         # if the extra payment is larger than the loan, return the remainder of the extra payment
         if extra_payment >= self.loan_amount():
-            self.amount = 0
+            self.set_amount(0)
             self.amortization_schedule = self.generate_amortization_schedule()
             return extra_payment - previous_amount
         else:

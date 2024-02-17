@@ -203,6 +203,13 @@ class Mortgage:
 
         return remaining
 
+    def change_loan_monthly(self, loan_index, monthly_payment_amount):
+        target_loan = self.loans[loan_index]
+        new_period = Loan.calculate_loan_period(target_loan.loan_amount(), target_loan.interest_rate, target_loan.monthly_payment(0)+monthly_payment_amount)
+        target_loan.set_period(new_period)
+        self.amortization_schedule = self.generate_amortization_schedule()
+
+
     def is_empty(self):
         return True if len(self.loans) < 1 else False
 
@@ -298,7 +305,30 @@ class Mortgage:
                                                             monthly_payment=target_loan.monthly_payment(0))
                     target_loan.set_period(new_period)
 
-        return Mortgage([loan for loan in recycled_mortgage.loans])
+        return Mortgage([loan for loan in recycled_mortgage.loans], name=f"Recycled {mortgage.name}")
+
+    @staticmethod
+    def recycle_mortgage_monthly(mortgage, extra_payment):
+
+        recycled_mortgage: Mortgage = copy.deepcopy(mortgage)
+        first_monthly_payment = recycled_mortgage.monthly_payment(0)
+        # Calculate cost per dollar for each loan
+
+        monthly_payment_difference = 0
+        converged = False
+        # Apply the extra payment to the principal of the most expensive loan
+        while not converged:
+            cost_per_currency = [loan.cost_per_currency() for loan in recycled_mortgage.loans]
+            loan_index = cost_per_currency.index(max(cost_per_currency))
+            target_loan = recycled_mortgage.loans[loan_index]
+            remainder = extra_payment - (recycled_mortgage.monthly_payment(0) - first_monthly_payment)
+            loan_payback = min([50, remainder, target_loan.loan_amount()])
+            recycled_mortgage.change_loan_monthly(loan_index, loan_payback)
+            converged = monthly_payment_difference == (recycled_mortgage.monthly_payment(0) - first_monthly_payment)
+            monthly_payment_difference = recycled_mortgage.monthly_payment(0) - first_monthly_payment
+
+
+        return Mortgage([loan for loan in recycled_mortgage.loans], name=recycled_mortgage.name)
 
     @staticmethod
     def amortization_diff(mortgage_before, mortgage_after):

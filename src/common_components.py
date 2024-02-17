@@ -10,7 +10,7 @@ def header():
 
 
 def footer():
-    st.write("© All rights reserved to George Kour. 2024 (v0.3)")
+    st.write("© All rights reserved to George Kour. 2024 (v0.8)")
     st.write("Disclaimer: The use of this application is at your own risk. "
              "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
              "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
@@ -61,12 +61,13 @@ def display_amortization_pane(mortgages):
                 display_amortization_table(mortgages[i], amortization_type)
 
 
-def display_mortgage_info(mortgage):
-    mortgage_info = mortgage.display_mortgage_info()
-
-    def convert_string_to_int(number_string):
+def convert_string_to_int(number_string):
         # Remove commas and convert to int
         return int(number_string.replace(',', ''))
+
+
+def display_mortgage_info(mortgage):
+    mortgage_info = mortgage.display_mortgage_info()
 
     def apply_background_color(row):
         bg_color = ''
