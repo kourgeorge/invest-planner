@@ -215,8 +215,7 @@ def merge_mortgages_info(mortgage_before, mortgage_after):
     # Merge dataframes on 'Loan #'
     merged_df = pd.merge(df_before, df_after, on='Loan Type', suffixes=('_before', '_after'))
 
-    columns_to_include = ['Loan Amount', 'Number of Months', 'First Payment', 'Total Interest',
-                          'Total Cost', 'Cost to Currency']
+    columns_to_include = ['Loan Amount', 'Number of Months', 'First Payment', 'Total Interest', 'Total Cost']
     # Create a new DataFrame with formatted values
     formatted_df = pd.DataFrame()
     formatted_df['Loan Type'] = merged_df['Loan Type']
@@ -225,8 +224,12 @@ def merge_mortgages_info(mortgage_before, mortgage_after):
     formatted_df['Payment Change'] = (df_before['First Payment'].astype(int) - df_after['First Payment'].astype(int)).astype(
         str)
     for column in columns_to_include:
-        formatted_df[column] = merged_df[column + '_before'].astype(int).astype(str) + ' → ' + merged_df[column + '_after'].astype(int).astype(
-            str)
+        formatted_df[column] = merged_df[column + '_before'].astype(int).astype(str) + ' → ' + merged_df[column + '_after'].astype(int).astype(str)
+
+    formatted_df['Cost to Currency'] = merged_df.apply(
+        lambda row: "{:,.2f} → {:,.2f}".format(float(row['Cost to Currency_before']),
+                                               float(row['Cost to Currency_after'])), axis=1)
+
 
     return formatted_df
 
