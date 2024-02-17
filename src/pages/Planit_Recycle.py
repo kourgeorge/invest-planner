@@ -15,6 +15,7 @@ def enter_mortgage_details():
     with st.container():
         st.session_state.mortgages_df = st.data_editor(st.session_state.mortgages_df, num_rows="dynamic",
                                                        hide_index=True,
+                                                       height=max([180, len(st.session_state.mortgages_df) * 20]),
                                                        column_config={
                                                            'amount': st.column_config.NumberColumn('Amount',
                                                                                                    required=True),
@@ -208,21 +209,24 @@ def saving_investment(mortgage: Mortgage, extra_payment: int):
                       color=['#336699', '#66cc99', '#cc9900'])
 
 
-def merge_mortgages_info(df_before, df_after):
+def merge_mortgages_info(mortgage_before, mortgage_after):
+    df_before = mortgage_before.get_mortgage_info()
+    df_after = mortgage_after.get_mortgage_info()
     # Merge dataframes on 'Loan #'
-    merged_df = pd.merge(df_before, df_after, on='Loan #', suffixes=('_before', '_after'))
+    merged_df = pd.merge(df_before, df_after, on='Loan Type', suffixes=('_before', '_after'))
 
     columns_to_include = ['Loan Amount', 'Number of Months', 'First Payment', 'Total Interest',
                           'Total Cost', 'Cost to Currency']
     # Create a new DataFrame with formatted values
     formatted_df = pd.DataFrame()
-    formatted_df['Loan #'] = merged_df['Loan #']
-    formatted_df['Loan Type'] = merged_df['Loan Type_before']
-    formatted_df['Amount diff'] = df_before['Loan Amount'].apply(convert_string_to_int).astype(int) - df_after[
-        'Loan Amount'].apply(convert_string_to_int).astype(int)
+    formatted_df['Loan Type'] = merged_df['Loan Type']
+    formatted_df['Repayment'] = (df_before['Loan Amount'].astype(int) - df_after['Loan Amount'].astype(int)).astype(
+        str)
+    formatted_df['Payment Change'] = (df_before['First Payment'].astype(int) - df_after['First Payment'].astype(int)).astype(
+        str)
     for column in columns_to_include:
-        formatted_df[column] = merged_df[column + '_before'].astype(str) + ' → ' + merged_df[column + '_after'].astype(str)
-
+        formatted_df[column] = merged_df[column + '_before'].astype(int).astype(str) + ' → ' + merged_df[column + '_after'].astype(int).astype(
+            str)
 
     return formatted_df
 
@@ -230,7 +234,7 @@ def merge_mortgages_info(df_before, df_after):
 def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: Mortgage):
     st.divider()
 
-    st.subheader(f"Recycle Information")
+    st.subheader(f"Mortgage Information")
 
     summary_section(mortgage_before, mortgage_after)
 
@@ -242,7 +246,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
         # # with col2:
         # st.subheader("Recycled Mortgage Details:")
         # display_mortgage_info(mortgage_after)
-        merged = merge_mortgages_info(mortgage_before.display_mortgage_info(), mortgage_after.display_mortgage_info())
+        merged = merge_mortgages_info(mortgage_before, mortgage_after)
         st.table(merged)
 
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
@@ -296,17 +300,19 @@ def summary_section(mortgage_before, mortgage_after):
     total_interest_payment_after = mortgage_after.total_interest_payments()
 
     summary_data = {
-        "Metric": ["Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
+        "Metric": ["Amount", "Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
                    "First Payment"],
-        "Before": [np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
+        "Before": [np.round(mortgage_before.loan_amount()),
+                   np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
                    np.round(total_interest_payment_before),
                    np.round(mortgage_before.average_interest_rate(), 2),
                    np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0))],
-        "After": [np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
+        "After": [np.round(mortgage_after.loan_amount()),
+                  np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
                   np.round(total_interest_payment_after),
                   np.round(mortgage_after.average_interest_rate(), 2),
                   np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0))],
-        "Savings": [np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
+        "Savings": [0, np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
                     int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
                     np.round(total_interest_payment_before - total_interest_payment_after),
                     np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
@@ -325,19 +331,21 @@ def summary_section(mortgage_before, mortgage_after):
         st.dataframe(summary_df,
                      use_container_width=True, hide_index=True)
     with col2:
-        st.metric(label='Interest Savings', value="{:,.0f}".format(summary_df["Savings"][2]),
-                  delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%', delta_color='inverse')
+        st.metric(label='Interest Savings', value="{:,.0f}".format(summary_df["Savings"][3]),
+                  delta=f'{-np.round(summary_df["Savings"][3] / summary_df["Before"][3] * 100, 2)}%',
+                  delta_color='inverse')
         st.write('')
 
-        st.metric(label='Cost Savings', value="{:,.0f}".format(summary_df["Savings"][0]),
-                  delta=f'{-np.round(summary_df["Savings"][0] / summary_df["Before"][0] * 100, 2)}%',
+        st.metric(label='Cost Savings', value="{:,.0f}".format(summary_df["Savings"][1]),
+                  delta=f'{-np.round(summary_df["Savings"][1] / summary_df["Before"][1] * 100, 2)}%',
                   delta_color='inverse')
     with col3:
-        st.metric(label='First Monthly Payment', value="{:,.0f}".format(summary_df["After"][5]),
-                  delta=f'{np.round(summary_df["After"][5] - summary_df["Before"][5])} ILS', delta_color='inverse')
+        st.metric(label='First Monthly Payment', value="{:,.0f}".format(summary_df["After"][6]),
+                  delta=f'{np.round(summary_df["After"][6] - summary_df["Before"][6])} ILS', delta_color='inverse')
         st.write('')
-        st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][1]),
-                  delta=f'{-np.round(summary_df["Savings"][1] / summary_df["Before"][1] * 100, 2)}%', delta_color='inverse')
+        st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][2]),
+                  delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%',
+                  delta_color='inverse')
 
     #     st.write('Before')
     #

@@ -30,6 +30,16 @@ class Loan:
         remaining_balance = self.amount
         amortization_schedule = []
 
+        if self.loan_amount() == 0:
+            amortization_schedule = {
+                'Month': 1,
+                'Monthly Payment': 0,  # Monthly payment is 0 during grace period
+                'Principal Payment': 0,
+                'Interest Payment': 0,
+                'Remaining Balance': 0
+            }
+            return pd.DataFrame([amortization_schedule])
+
         for month in range(1, self.grace_period + 1):
             remaining_balance = remaining_balance * monthly_cpi
             # During grace period, only interest payments, no principal reduction
