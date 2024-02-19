@@ -18,7 +18,10 @@ def enter_mortgage_details():
                                                        height=max([180, len(st.session_state.mortgages_df) * 20]),
                                                        column_config={
                                                            'amount': st.column_config.NumberColumn('Amount',
-                                                                                                   required=True),
+                                                                                                   required=True,
+                                                                                                   min_value=0,
+                                                                                                   max_value=50000000
+                                                                                                   ),
                                                            'num_of_months': st.column_config.NumberColumn('Months',
                                                                                                           required=True,
                                                                                                           min_value=0,
@@ -306,23 +309,26 @@ def summary_section(mortgage_before, mortgage_after):
 
     summary_data = {
         "Metric": ["Amount", "Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
-                   "First Payment"],
+                   "First Payment", " Estimated Max Payment"],
         "Before": [np.round(mortgage_before.loan_amount()),
                    np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
                    np.round(total_interest_payment_before),
                    np.round(mortgage_before.average_interest_rate(), 2),
-                   np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0))],
+                   np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0)),
+                   np.round(mortgage_before.highest_monthly_payment())],
         "After": [np.round(mortgage_after.loan_amount()),
                   np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
                   np.round(total_interest_payment_after),
                   np.round(mortgage_after.average_interest_rate(), 2),
-                  np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0))],
+                  np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0)),
+                  np.round(mortgage_after.highest_monthly_payment())],
         "Savings": [0, np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
                     int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
                     np.round(total_interest_payment_before - total_interest_payment_after),
                     np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
                     np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment()),
-                    np.round(mortgage_before.monthly_payment(0) - mortgage_after.monthly_payment(0))]
+                    np.round(mortgage_before.monthly_payment(0) - mortgage_after.monthly_payment(0)),
+                    np.round(mortgage_before.highest_monthly_payment() - mortgage_after.highest_monthly_payment())]
     }
 
     summary_df = pd.DataFrame(summary_data)
@@ -376,6 +382,12 @@ def invested_savings_options_terminology():
         df = pd.DataFrame(data)
         st.table(df.reset_index(drop=True))
 
+def get_example_mortgage():
+    return pd.DataFrame([[158334, 180, 5.149, 'Kalatz', 0, False],
+                         [158333, 180, 5.55, 'Prime', 0, False],
+                         [158333, 180, 3.06, 'MishtanaTsmoda', 0, True]],
+                        columns=list(Mortgage.columns_types().keys())).astype(
+        Mortgage.columns_types())
 
 def main():
 
@@ -383,8 +395,9 @@ def main():
 
     header()
     st.title('Mortgage Recycling Calculator')
-    st.session_state.mortgages_df = pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
-        Mortgage.columns_types())
+    st.session_state.mortgages_df = get_example_mortgage()
+        # pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
+        # Mortgage.columns_types())
 
     col1, col2 = st.columns([1, 2])
     with col1:

@@ -20,22 +20,17 @@ def footer():
 
 def parameters_bar():
     with st.expander("Parameters", expanded=False):
-        cols = st.columns([1, 1, 1, 1, 1, 1])
+        cols = st.columns([1, 1, 1, 1])
         with cols[0]:
             st.session_state.CPI = st.number_input("CPI", value=constants.CPI, help="Expected Customer Price Index")
         with cols[1]:
-            st.session_state.StocksMarketYearlyReturn = st.number_input("SM Return %",
+            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Return %",
                                                                         value=constants.StocksMarketYearlyReturn, help='Expected Annual Stocks Market Returns')
         with cols[2]:
             st.session_state.StocksMarketFeesPercentage = st.number_input("Trading Fees %",
                                                                           value=constants.StocksMarketFeesPercentage, help='Annual Stocks Market Fees %')
         with cols[3]:
-            st.session_state.TaxBuyingPercentage = st.number_input("Buy Tax %", value=constants.TaxBuyingPercentage)
-        with cols[4]:
             st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
-        with cols[5]:
-            st.session_state.RealEstateYearlyAppreciation = st.number_input("RE Appreciation %",
-                                                                            value=constants.RealEstateYearlyAppreciation, help="Expected Real Estate Annual Price Appreciation")
 
 
 def display_amortization_table(mortgage, amortization_type):

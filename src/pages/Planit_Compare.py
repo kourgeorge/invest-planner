@@ -24,7 +24,10 @@ def enter_mortgage_details():
                                                                   hide_index=True,
                                                                   column_config={
                                                                      'amount': st.column_config.NumberColumn('Amount',
-                                                                                                             required=True),
+                                                                                                             required=True,
+                                                                                                             min_value=0,
+                                                                                                             max_value=50000000
+                                                                                                             ),
                                                                      'num_of_months': st.column_config.NumberColumn(
                                                                          'Months',
                                                                          required=True,
