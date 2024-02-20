@@ -226,18 +226,18 @@ def summary_section(mortgages):
         "Period (Month)": [np.round(mortgage.num_of_months()) for mortgage in mortgages],
         "Interest Payment": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
         "Avg. Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
-        "Monthly Payment": [np.round(mortgage.average_monthly_payment()) for mortgage in mortgages]
+        "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
+        "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages]
     }
 
-    summary_df = pd.DataFrame(summary_data)
+    summary_df = pd.DataFrame(summary_data).set_index('Name')
 
     explode = (0, 0.1)
     col_summary, col_pies = st.columns([1, 1])
     width = 3
     height = 3
     with col_summary:
-        st.dataframe(summary_df,
-                     use_container_width=True, hide_index=True)
+        st.dataframe(summary_df.transpose(), use_container_width=True, hide_index=False)
     with col_pies:
         cols = st.columns([1] * len(mortgages))
         for i, mortgage in enumerate(mortgages):
