@@ -9,7 +9,7 @@ class CPIVAR:
     @staticmethod
     def value_at_risk(holding_period):
         if CPIVAR.base is None:
-            df = pd.read_csv('data/CPI.csv')
+            df = pd.read_csv('data/CPI_israel.csv')
             cpi_series = df['CPIi']
             CPIVAR.base = calculate_var(cpi_series, confidence_level=0.95)
 
