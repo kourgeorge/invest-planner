@@ -108,36 +108,6 @@ def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortizati
         }, color=['#FF5733', '#FFD700'])
 
 
-def something_else(yearly_amortization_before, yearly_amortization_after):
-    data = pd.concat([yearly_amortization_before['Monthly Payment'].to_frame().rename(
-        columns={'Monthly Payment': 'Before'}),
-        yearly_amortization_after['Monthly Payment'].to_frame().rename(
-            columns={'Monthly Payment': 'After'})])
-
-    # Reset index to use it as x-axis
-    data.reset_index(inplace=True)
-
-    melted_data = data.melt('index')
-    # melted_data.sort_values(['index', 'variable'], inplace=True)
-    melted_data['variable'] = pd.Categorical(melted_data['variable'], categories=['Before', 'After'], ordered=True)
-
-    print(melted_data)
-    # Create an Altair chart
-    chart = alt.Chart(melted_data).mark_bar().encode(
-        x=alt.X('variable:N', axis=alt.Axis(title='', labels=False)),
-        y=alt.Y('value:Q', axis=alt.Axis(title='Monthly Payment Amount (Currency)', grid=False)),
-        color=alt.Color('variable:N'),
-        column=alt.Column('index:O', title='Year', header=alt.Header(labelOrient='bottom'))
-    ).properties(
-        width=60,
-        height=400,
-        title='Monthly Payment Comparison Before and After'
-    )
-
-    # Display the Altair chart using st.altair_chart
-    st.altair_chart(chart, use_container_width=False)
-
-
 def main_mortgage_recycle_report(extra_payment, extra_monthly, change):
     if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df) or len(
             st.session_state.mortgages_df) == 0:
@@ -147,8 +117,9 @@ def main_mortgage_recycle_report(extra_payment, extra_monthly, change):
 
     mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment,
                                                change=change) if extra_payment > 0 else mortgage
+    extra_actual_monthly = (mortgage.monthly_payment(0) - mortgage_after.monthly_payment(0) + extra_monthly) if extra_monthly != 0 else 0
     mortgage_after = Mortgage.recycle_mortgage_monthly(mortgage=mortgage_after,
-                                                       extra_payment=extra_monthly) if extra_monthly != 0 else mortgage_after
+                                                       extra_payment=extra_actual_monthly) if extra_actual_monthly != 0 else mortgage_after
     mortgage_after.name = 'After'
 
     mortgage_recycle_report_details(mortgage, mortgage_after)
@@ -212,29 +183,32 @@ def saving_investment(mortgage: Mortgage, extra_payment: int, monthly_extra:int=
                       color=['#336699', '#66cc99', '#cc9900'])
 
 
-def merge_mortgages_info(mortgage_before, mortgage_after):
+def show_loans_recycling_details(mortgage_before, mortgage_after):
     df_before = mortgage_before.get_mortgage_info()
     df_after = mortgage_after.get_mortgage_info()
     # Merge dataframes on 'Loan #'
     merged_df = pd.merge(df_before, df_after, on='Loan Type', suffixes=('_before', '_after'))
 
-    columns_to_include = ['Loan Amount', 'Number of Months', 'First Payment', 'Total Interest', 'Total Cost']
+    columns_to_include = ['Loan Amount',  'First Payment', 'Number of Months', 'Total Interest', 'Total Cost']
     # Create a new DataFrame with formatted values
     formatted_df = pd.DataFrame()
     formatted_df['Loan Type'] = merged_df['Loan Type']
 
     for column in columns_to_include:
-        formatted_df[column] = merged_df.apply(
-            lambda row: "{:,.0f} → {:,.0f} \t({:,.0f})".format((row[f'{column}_before']),
-                                                               (row[f'{column}_after']),
-                                                               (row[f'{column}_after']) - (
-                                                                   row[f'{column}_before'])),
-            axis=1)
-    formatted_df['Cost to Currency'] = merged_df.apply(
-        lambda row: "{:,.2f} → {:,.2f} ({:,.2f})".format((row['Cost to Currency_before']),
-                                                         (row['Cost to Currency_after']),
-                                                         (row['Cost to Currency_after']) - (
-                                                             row['Cost to Currency_before'])), axis=1)
+    #     formatted_df[column] = merged_df.apply(
+    #         lambda row: "{:,.0f} → {:,.0f} \t({:,.0f})".format((row[f'{column}_before']),
+    #                                                            (row[f'{column}_after']),
+    #                                                            (row[f'{column}_after']) - (
+    #                                                                row[f'{column}_before'])),
+    #         axis=1)
+    # formatted_df['Cost to Currency'] = merged_df.apply(
+    #     lambda row: "{:,.2f} → {:,.2f} ({:,.3f})".format((row['Cost to Currency_before']),
+    #                                                      (row['Cost to Currency_after']),
+    #                                                      (row['Cost to Currency_after']) - (
+    #                                                          row['Cost to Currency_before'])), axis=1)
+
+        formatted_df[column] = merged_df.apply(lambda row: "{:,.0f}".format(row[f'{column}_after'] - row[f'{column}_before']), axis=1)
+    formatted_df['Cost to Currency'] = merged_df.apply(lambda row: "{:,.3f}".format(row['Cost to Currency_after'] - row['Cost to Currency_before']), axis=1)
 
     return formatted_df
 
@@ -246,7 +220,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
 
     summary_section(mortgage_before, mortgage_after)
 
-    with st.expander("Loans Recycling Details", expanded=True):
+    with st.expander("Loans Recycling Plan", expanded=True):
         # col1, col2 = st.columns([1,1])
         # with col1:
         # st.subheader("Current Mortgage Details:")
@@ -254,8 +228,16 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
         # # with col2:
         # st.subheader("Recycled Mortgage Details:")
         # display_mortgage_info(mortgage_after)
-        merged = merge_mortgages_info(mortgage_before, mortgage_after)
-        display_table_with_total_row(merged)
+        merged = show_loans_recycling_details(mortgage_before, mortgage_after)
+        cols = st.columns(2, gap='large')
+        with cols[0]:
+            st.write("Loans status Before")
+            display_table_with_total_row(mortgage_before.display_mortgage_info()[
+                                             ['Loan Type', 'Loan Amount', 'First Payment', 'Number of Months',
+                                              'Total Interest', 'Total Cost', 'Cost to Currency']])
+        with cols[1]:
+            st.write("Loans Change")
+            display_table_with_total_row(merged)
 
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -309,28 +291,29 @@ def summary_section(mortgage_before, mortgage_after):
 
     summary_data = {
         "Metric": ["Amount", "Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
-                   "First Payment", " Estimated Max Payment"],
+                   "First Payment", " Estimated Max Payment", "Volatility Score"],
         "Before": [np.round(mortgage_before.loan_amount()),
                    np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
                    np.round(total_interest_payment_before),
                    np.round(mortgage_before.average_interest_rate(), 2),
                    np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0)),
-                   np.round(mortgage_before.highest_monthly_payment())],
+                   np.round(mortgage_before.highest_monthly_payment()), mortgage_before.get_volatility()],
         "After": [np.round(mortgage_after.loan_amount()),
                   np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
                   np.round(total_interest_payment_after),
                   np.round(mortgage_after.average_interest_rate(), 2),
                   np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0)),
-                  np.round(mortgage_after.highest_monthly_payment())],
+                  np.round(mortgage_after.highest_monthly_payment()), mortgage_after.get_volatility()],
         "Savings": [0, np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
                     int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
                     np.round(total_interest_payment_before - total_interest_payment_after),
                     np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
                     np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment()),
                     np.round(mortgage_before.monthly_payment(0) - mortgage_after.monthly_payment(0)),
-                    np.round(mortgage_before.highest_monthly_payment() - mortgage_after.highest_monthly_payment())]
+                    np.round(mortgage_before.highest_monthly_payment() - mortgage_after.highest_monthly_payment()),
+                    mortgage_before.get_volatility() - mortgage_after.get_volatility()]
     }
-
+    print(summary_data)
     summary_df = pd.DataFrame(summary_data)
 
     col1, col_gap, col2, col3 = st.columns([4, 0.5, 1, 1])
@@ -348,7 +331,7 @@ def summary_section(mortgage_before, mortgage_after):
                   delta_color='inverse')
     with col3:
         st.metric(label='First Monthly Payment', value="{:,.0f}".format(summary_df["After"][6]),
-                  delta=f'{np.round(summary_df["After"][6] - summary_df["Before"][6])} ILS', delta_color='inverse')
+                  delta=f'{int(summary_df["After"][6] - summary_df["Before"][6])} ILS', delta_color='inverse')
         st.write('')
         st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][2]),
                   delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%',
@@ -413,15 +396,18 @@ def main():
         start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df['amount'].sum() // 100000) * 10000])))
         extra_payment = st.number_input('Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
                                         max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
-        extra_payment_monthly = st.number_input('Monthly Extra:', min_value=-2000, value=0,
+
+        is_adding_monthly = st.checkbox('Monthly Extra')
+        extra_payment_monthly = st.number_input('extra', min_value=-2000, value=0,
                                                 step=start_value // 1000,
                                                 max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())),
-                                                key="monthly_extra")
-    # Add selection list in the third column
-    with col3:
-        change = st.selectbox('Select Option:', ['Payment', 'Period'], help=recycle_strategy_help, disabled=(extra_payment==0))
+                                                key="monthly_extra", disabled=not is_adding_monthly, label_visibility="collapsed")
 
-    main_mortgage_recycle_report(extra_payment, extra_payment_monthly, change)
+    extra_monthly = 0 if not is_adding_monthly else extra_payment_monthly
+    with col3:
+        change = st.selectbox('Reduce:', ['Payment', 'Period'], help=recycle_strategy_help, disabled=(extra_payment==0))
+
+    main_mortgage_recycle_report(extra_payment, extra_monthly, change)
 
     st.divider()
     invested_savings_options_terminology()

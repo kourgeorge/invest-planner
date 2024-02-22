@@ -81,4 +81,4 @@ def plot_annual_amortization_monthly_line(mortgages, field):
 
 
 recycle_strategy_help = "The recycling strategy. Choosing 'Payment' will decrease your monthly payment while keeping the loan duration constant. " \
-                        "The 'Period' option will maintain a relatively consistent monthly payment but reduce the overall mortgage period"
+                        "The 'Period' option will maintain a relatively consistent monthly payment but reduce the overall mortgage period."

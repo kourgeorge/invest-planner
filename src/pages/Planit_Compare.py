@@ -1,14 +1,15 @@
 import numpy as np
 import streamlit as st
 import pandas as pd
-from matplotlib import pyplot as plt
+import altair as alt
 
-from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row
+from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
+    plot_annual_amortization_monthly_line
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
-from loan import Loan
+from loan import Loan, LoanType
 from mortgage import Mortgage
-from pages.Planit_Recycle import plot_monthly_interest_graph_yearly
 
+loan_type_keys = [enum_member.name for enum_member in LoanType]
 
 def enter_mortgage_details():
     with st.container():
@@ -40,8 +41,8 @@ def enter_mortgage_details():
                                                                          min_value=0,
                                                                          max_value=20,
                                                                          default=5.1),
-                                                                     'loan_type': st.column_config.TextColumn(
-                                                                         'Loan Type',
+                                                                     'loan_type': st.column_config.SelectboxColumn(
+                                                                         label='Loan Type', options=loan_type_keys,
                                                                          required=True),
                                                                      'grace_period': st.column_config.NumberColumn(
                                                                          'Grace Period',
@@ -64,8 +65,9 @@ def plot_monthly_payments_graph_yearly(mortgages):
     col1, col2 = st.columns([1, 1])
     with col1:
         st.subheader("Monthly Payment:")
-        st.line_chart({mortgages[i].name: yearly_amortization['Monthly Payment'] for i, yearly_amortization in
+        st.line_chart({mortgages[i].name: yearly_amortization['Monthly Payment']//12 for i, yearly_amortization in
                        enumerate(yearly_amortizations)})
+
     with col2:
         st.subheader("Remaining Balance:")
         st.line_chart({mortgages[i].name: yearly_amortization['Remaining Balance'] for i, yearly_amortization in
@@ -85,9 +87,6 @@ def plot_principal_interest_yearly(mortgages):
                 'Principal Payment': yearly_amortizations[i]['Principal Payment'] // 12,
                 'Interest Payment': yearly_amortizations[i]['Interest Payment'] // 12
             }, color=['#FF5733', '#FFD700'])
-
-
-
 
 
 def main_mortgage_comparison_report():
@@ -187,6 +186,21 @@ def mortgage_comparison_report_details(mortgages):
     display_amortization_pane(mortgages)
 
 
+def plot_monthly_interest_graph_yearly(mortgages):
+    yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        st.subheader("Monthly Interest")
+        plot_annual_amortization_monthly_line(mortgages, 'Interest Payment')
+
+    with col2:
+        st.subheader("Accumulative Interest")
+        st.line_chart(
+            {f"{mortgages[i].name}": yearly_amortization['Interest Payment'].cumsum() for i, yearly_amortization in
+             enumerate(yearly_amortizations)})
+
+
 def bars_summary_section(mortgage_before, mortgage_after):
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
@@ -224,34 +238,57 @@ def summary_section(mortgages):
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
         "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "Period (Month)": [np.round(mortgage.num_of_months()) for mortgage in mortgages],
-        "Interest Payment": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
-        "Avg. Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
+        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Inflation Payment": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
+        "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
-        "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages]
+        "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
+        "Volatility Score": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
 
-    summary_df = pd.DataFrame(summary_data).set_index('Name')
+    summary_df = pd.DataFrame(summary_data)
+    summary_df["Interest Only"] = summary_df["Interest+CPI"]-summary_df["Inflation Payment"]
 
-    explode = (0, 0.1)
-    col_summary, col_pies = st.columns([1, 1])
-    width = 3
-    height = 3
+    col_summary, col_metrics = st.columns([3, 2], gap='large')
+
     with col_summary:
-        st.dataframe(summary_df.transpose(), use_container_width=True, hide_index=False)
-    with col_pies:
-        cols = st.columns([1] * len(mortgages))
-        for i, mortgage in enumerate(mortgages):
-            with cols[i]:
-                if not mortgage.is_empty():
-                    st.write(mortgage.name)
+        st.dataframe(summary_df.set_index('Name').transpose(), use_container_width=True, hide_index=False)
+    with col_metrics:
 
-                    fig1, ax1 = plt.subplots(figsize=(width, height))
-                    ax1.pie([mortgage.total_interest_payments(), mortgage.total_principal_payments()],
-                            explode=explode,
-                            labels=['Interest', 'Principle'], autopct='%1.1f%%', textprops={'fontsize': 18},
-                            shadow=False, startangle=0, colors=['lightcoral', 'lightblue'])
-                    ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
-                    st.pyplot(fig1, use_container_width=True)
+        x_scale = alt.Scale(domain=(summary_df["Volatility Score"].min()-1, summary_df["Volatility Score"].max()+1))
+        y_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
+        size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
+
+        c = (alt.Chart(summary_df).mark_circle()
+             .encode(x=alt.X("Volatility Score", scale=x_scale),
+                     y=alt.Y("Avg Interest Rate", scale=y_scale),
+                     size=alt.Size("First Payment", scale=size_scale),
+                     color='Name', tooltip=["Volatility Score", "Avg Interest Rate", "Maximum Payment"])).properties(
+            width=200, height=200)
+        st.altair_chart(c, use_container_width=True)
+
+        # Melt the DataFrame to make it suitable for a stacked bar chart
+        melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Only", "Inflation Payment"])
+
+        # Create the Altair Chart
+        chart = alt.Chart(melted_df).mark_bar().encode(
+            x=alt.X('sum(value)', ),
+            y=alt.Y('Name', sort='-x'),
+            color='variable',
+            tooltip=['Name', 'variable', 'value']
+        ).properties(
+            title=''
+        )
+        st.altair_chart(chart, use_container_width=True)
+
+        # radar_chart = alt.Chart(summary_df).mark_line().encode(
+        #     alt.Y('Name:N'),
+        #     alt.X('Avg Interest Rate', title='Interest Rate'),
+        #     alt.X2('Volatility Score', title='Volatility Score')
+        # ).properties(
+        #     title='Comparison of Loans'
+        # )
+        # st.altair_chart(radar_chart, use_container_width=True)
 
 
 def load_mortgages_csv(max_files_uploads):
