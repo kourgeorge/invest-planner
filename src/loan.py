@@ -203,6 +203,6 @@ class Loan:
             'Inflation Payment': 'sum',
             'Interest Payment': 'sum',
             'Remaining Balance': 'last'  # Take the last value for Remaining Balance
-        }).astype({'Month': int, 'Principal Payment': int, 'Interest Payment': int, 'Monthly Payment': int,
+        }).astype({'Month': int, 'Principal Payment': int, 'Inflation Payment':int, 'Interest Payment': int, 'Monthly Payment': int,
                    'Remaining Balance': int})
         return yearly_amortization

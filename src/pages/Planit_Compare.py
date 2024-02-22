@@ -238,46 +238,45 @@ def summary_section(mortgages):
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
         "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "Period (Month)": [np.round(mortgage.num_of_months()) for mortgage in mortgages],
-        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
-        "Inflation Payment": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
-        "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
-        "Volatility Score": [round(mortgage.get_volatility()) for mortgage in mortgages]
+        "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
+        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Inflation Payment": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
+        "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
 
     summary_df = pd.DataFrame(summary_data)
     summary_df["Interest Only"] = summary_df["Interest+CPI"]-summary_df["Inflation Payment"]
 
-    col_summary, col_metrics = st.columns([3, 2], gap='large')
+    col_summary, col_metrics = st.columns([2, 1], gap='large')
 
     with col_summary:
         st.dataframe(summary_df.set_index('Name').transpose(), use_container_width=True, hide_index=False)
     with col_metrics:
 
-        x_scale = alt.Scale(domain=(summary_df["Volatility Score"].min()-1, summary_df["Volatility Score"].max()+1))
-        y_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
+        risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
+        interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
         size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
 
         c = (alt.Chart(summary_df).mark_circle()
-             .encode(x=alt.X("Volatility Score", scale=x_scale),
-                     y=alt.Y("Avg Interest Rate", scale=y_scale),
+             .encode(x=alt.Y("Risk", scale=risk_scale),
+                     y=alt.X("Avg Interest Rate", scale=interest_scale),
                      size=alt.Size("First Payment", scale=size_scale),
-                     color='Name', tooltip=["Volatility Score", "Avg Interest Rate", "Maximum Payment"])).properties(
+                     color='Name', tooltip=["Risk", "Avg Interest Rate", "Maximum Payment"])).properties(
             width=200, height=200)
+
         st.altair_chart(c, use_container_width=True)
 
         # Melt the DataFrame to make it suitable for a stacked bar chart
         melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Only", "Inflation Payment"])
-
-        # Create the Altair Chart
         chart = alt.Chart(melted_df).mark_bar().encode(
-            x=alt.X('sum(value)', ),
-            y=alt.Y('Name', sort='-x'),
-            color='variable',
+            x=alt.X('sum(value)', axis=alt.Axis(title=None)),
+            y=alt.Y('Name', sort='x', axis=alt.Axis(title=None)),
+            color=alt.Color('variable', scale=alt.Scale(range=['#9ACD32', '#FFD700', '#FF6347'])),
             tooltip=['Name', 'variable', 'value']
         ).properties(
-            title=''
+            title='Costs'
         )
         st.altair_chart(chart, use_container_width=True)
 

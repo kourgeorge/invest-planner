@@ -61,7 +61,7 @@ def display_yearly_amortization_table(mortgage, amortization_type):
 def plot_monthly_payments_graph_yearly(mortgages):
     yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 1], gap='large')
     with col1:
         st.subheader("Monthly Payment:")
         plot_annual_amortization_monthly_line(mortgages, 'Monthly Payment')
@@ -75,7 +75,7 @@ def plot_monthly_payments_graph_yearly(mortgages):
 def plot_monthly_interest_graph_yearly(mortgages):
     yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 1], gap='large')
     with col1:
         st.subheader("Monthly Interest")
         plot_annual_amortization_monthly_line(mortgages, 'Interest Payment')
@@ -90,7 +90,7 @@ def plot_monthly_interest_graph_yearly(mortgages):
 def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortization_after):
     st.subheader("Principal-Interest Payment:")
 
-    col_before, col_after = st.columns(2)
+    col_before, col_after = st.columns(2, gap='large')
     # Plot for 'Before' in the first column
     with col_before:
         st.write("Before")
@@ -157,7 +157,7 @@ def saving_investment(mortgage: Mortgage, extra_payment: int, monthly_extra:int=
     yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
     yearly_amortization_stockmarket = Investment.get_yearly_amortization(stockmarket_schedule_payment)
 
-    col1, col2 = st.columns([1, 1])
+    col1, col2 = st.columns([1, 1], gap='large')
     with col1:
         st.subheader(f"Annual Payment Savings (Acc.): ")
         st.write(f'Extra Payment={extra_payment}')
@@ -237,7 +237,10 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
                                               'Total Interest', 'Total Cost', 'Cost to Currency']])
         with cols[1]:
             st.write("Loans Change")
-            display_table_with_total_row(merged)
+            # display_table_with_total_row(merged)
+            display_table_with_total_row(mortgage_after.display_mortgage_info()[
+                                             ['Loan Type', 'Loan Amount', 'First Payment', 'Number of Months',
+                                              'Total Interest', 'Total Cost', 'Cost to Currency']])
 
     yearly_amortization_before = Loan.get_yearly_amortization(mortgage_before.amortization_schedule)
     yearly_amortization_after = Loan.get_yearly_amortization(mortgage_after.amortization_schedule)
