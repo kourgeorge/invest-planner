@@ -50,8 +50,9 @@ class Loan:
 
         for month in range(1, self.grace_period + 1):
             remaining_balance = remaining_balance * monthly_cpi
-            inflation_part = remaining_balance * (1 - 1 / CPI)
+            inflation_part = remaining_balance * (1 - 1 / monthly_cpi)
             interest_payment = remaining_balance * r
+            remaining_balance = remaining_balance + interest_payment
 
             amortization_schedule.append({
                 'Month': month,
