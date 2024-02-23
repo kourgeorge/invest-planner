@@ -231,7 +231,6 @@ def bars_summary_section(mortgage_before, mortgage_after):
 
 
 def summary_section(mortgages):
-    # Use the last item in the dataframes for "Interest Payment"
 
     summary_data = {
         "Name": [mortgage.name for mortgage in mortgages],
@@ -243,17 +242,19 @@ def summary_section(mortgages):
         "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
         "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "Cost per Currency": [np.round(mortgage.cost_per_currency(),2) for mortgage in mortgages],
-        "Inflation Payment": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
-
     summary_df_table = pd.DataFrame(summary_data)
 
     col_summary, col_metrics = st.columns([3, 2], gap='large')
     with col_summary:
         st.dataframe(summary_df_table.set_index('Name').transpose(), use_container_width=True, hide_index=False)
+
     with col_metrics:
         summary_df = summary_df_table.copy()
+        summary_df["Inflation Payment"] = [np.round(mortgage.total_inflation_payments()) for mortgage in
+                                                 mortgages]
+
         summary_df["Interest Only"] = summary_df["Interest+CPI"] - summary_df["Inflation Payment"]
 
         risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
