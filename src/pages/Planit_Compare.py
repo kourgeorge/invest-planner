@@ -34,7 +34,7 @@ def enter_mortgage_details():
                                                                          required=True,
                                                                          min_value=0,
                                                                          max_value=360,
-                                                                         default=220),
+                                                                         default=240),
                                                                      'interest_rate': st.column_config.NumberColumn(
                                                                          'Interest Rate',
                                                                          required=True,
@@ -236,37 +236,29 @@ def summary_section(mortgages):
     summary_data = {
         "Name": [mortgage.name for mortgage in mortgages],
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
-        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
-        "Period (Month)": [np.round(mortgage.num_of_months()) for mortgage in mortgages],
+        "Period (Years)": [np.round(mortgage.num_of_months()/12,2) for mortgage in mortgages],
+        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
         "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
-        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
+        "Cost per Currency": [np.round(mortgage.cost_per_currency(),2) for mortgage in mortgages],
         "Inflation Payment": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
 
-    summary_df = pd.DataFrame(summary_data)
-    summary_df["Interest Only"] = summary_df["Interest+CPI"]-summary_df["Inflation Payment"]
+    summary_df_table = pd.DataFrame(summary_data)
 
-    col_summary, col_metrics = st.columns([2, 1], gap='large')
-
+    col_summary, col_metrics = st.columns([3, 2], gap='large')
     with col_summary:
-        st.dataframe(summary_df.set_index('Name').transpose(), use_container_width=True, hide_index=False)
+        st.dataframe(summary_df_table.set_index('Name').transpose(), use_container_width=True, hide_index=False)
     with col_metrics:
+        summary_df = summary_df_table.copy()
+        summary_df["Interest Only"] = summary_df["Interest+CPI"] - summary_df["Inflation Payment"]
 
         risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
         interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
         size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
-
-        c = (alt.Chart(summary_df).mark_circle()
-             .encode(x=alt.Y("Risk", scale=risk_scale),
-                     y=alt.X("Avg Interest Rate", scale=interest_scale),
-                     size=alt.Size("First Payment", scale=size_scale),
-                     color='Name', tooltip=["Risk", "Avg Interest Rate", "Maximum Payment"])).properties(
-            width=200, height=200)
-
-        st.altair_chart(c, use_container_width=True)
 
         # Melt the DataFrame to make it suitable for a stacked bar chart
         melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Only", "Inflation Payment"])
@@ -279,6 +271,17 @@ def summary_section(mortgages):
             title='Costs'
         )
         st.altair_chart(chart, use_container_width=True)
+
+
+        c = (alt.Chart(summary_df).mark_circle()
+             .encode(x=alt.Y("Risk", scale=risk_scale),
+                     y=alt.X("Avg Interest Rate", scale=interest_scale),
+                     size=alt.Size("First Payment", scale=size_scale),
+                     color='Name', tooltip=["Risk", "Avg Interest Rate", "Maximum Payment"])).properties(
+            width=200, height=200)
+
+        st.altair_chart(c, use_container_width=True)
+
 
         # radar_chart = alt.Chart(summary_df).mark_line().encode(
         #     alt.Y('Name:N'),
