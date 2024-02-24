@@ -1,5 +1,5 @@
 P = 6
-CPI = 2.0
+CPI = 3.0
 RentalMonthlyRatio = 0.8
 TaxGainPercentage = 25
 TaxBuyingPercentage = 8
