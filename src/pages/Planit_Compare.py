@@ -4,13 +4,10 @@ import pandas as pd
 import altair as alt
 
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
-    plot_annual_amortization_monthly_line
-from constants import CPI
-from finance_utils import banks_monthly_data
-from loan import Loan, LoanType
+    plot_annual_amortization_monthly_line, mortgage_editor
+from loan import Loan
 from mortgage import Mortgage
 
-loan_type_keys = [enum_member.name for enum_member in LoanType]
 
 def enter_mortgage_details():
     with st.container():
@@ -21,44 +18,7 @@ def enter_mortgage_details():
         for i in range(len(st.session_state.mortgages_df)):
             with tabs[i]:
                 st.session_state.mortgages_name[i] = st.text_input('Name', value=st.session_state.mortgages_name[i], key=f'name_{st.session_state.mortgages_name[i]}{i}')
-                st.session_state.mortgages_df[i] = st.data_editor(st.session_state.mortgages_df[i], key=f'data_{st.session_state.mortgages_name[i]}{i}',
-                                                                  num_rows="dynamic",
-                                                                  hide_index=True,
-                                                                  column_config={
-                                                                     'amount': st.column_config.NumberColumn('Amount',
-                                                                                                             required=True,
-                                                                                                             min_value=0,
-                                                                                                             max_value=50000000
-                                                                                                             ),
-                                                                     'num_of_months': st.column_config.NumberColumn(
-                                                                         'Months',
-                                                                         required=True,
-                                                                         min_value=0,
-                                                                         max_value=360,
-                                                                         default=240),
-                                                                     'interest_rate': st.column_config.NumberColumn(
-                                                                         'Interest Rate',
-                                                                         required=True,
-                                                                         min_value=0,
-                                                                         max_value=20,
-                                                                         default=5.1),
-                                                                     'loan_type': st.column_config.SelectboxColumn(
-                                                                         label='Loan Type', options=loan_type_keys,
-                                                                         required=True),
-                                                                     'grace_period': st.column_config.NumberColumn(
-                                                                         'Grace Period',
-                                                                         required=True,
-                                                                         min_value=0,
-                                                                         max_value=50,
-                                                                         default=0),
-                                                                     'cpi': st.column_config.CheckboxColumn(label='CPI',
-                                                                                                            required=True,
-                                                                                                            default=True)
-                                                                 },
-                                                                  column_order=['loan_type', 'amount', 'num_of_months',
-                                                                               'interest_rate',
-                                                                               'grace_period', 'cpi'],
-                                                                  use_container_width=True)
+                st.session_state.mortgages_df[i] = mortgage_editor(st.session_state.mortgages_df[i], st.session_state.mortgages_name[i])
 
 
 def plot_monthly_payments_graph_yearly(mortgages):
@@ -108,7 +68,6 @@ def main_mortgage_comparison_report():
     mortgage_comparison_report_details(mortgages)
 
     st.divider()
-
 
 
 def mortgage_comparison_report_details(mortgages):
@@ -183,7 +142,7 @@ def summary_section(mortgages):
         "Name": [mortgage.name for mortgage in mortgages],
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
         "Period (Years)": [np.round(mortgage.num_of_months()/12,2) for mortgage in mortgages],
-        "Interest+CPI": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Interest": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
         "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
@@ -199,18 +158,12 @@ def summary_section(mortgages):
 
     with col_metrics:
         summary_df = summary_df_table.copy()
-        summary_df["Inflation Payment"] = [np.round(mortgage.total_inflation_payments()) for mortgage in
+        summary_df["Indexation"] = [np.round(mortgage.total_inflation_payments()) for mortgage in
                                                  mortgages]
 
-        summary_df["Interest Only"] = summary_df["Interest+CPI"] - summary_df["Inflation Payment"]
-
-        risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
-        interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
-        size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
-
         # Melt the DataFrame to make it suitable for a stacked bar chart
-        melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Only", "Inflation Payment"])
-        chart = alt.Chart(melted_df).mark_bar().encode(
+        melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest", "Indexation"])
+        risk_chart = alt.Chart(melted_df).mark_bar().encode(
             x=alt.X('sum(value)', axis=alt.Axis(title=None)),
             y=alt.Y('Name', sort='x', axis=alt.Axis(title=None)),
             color=alt.Color('variable', scale=alt.Scale(range=['#9ACD32', '#FFD700', '#FF6347'])),
@@ -218,27 +171,19 @@ def summary_section(mortgages):
         ).properties(
             title='Costs'
         )
-        st.altair_chart(chart, use_container_width=True)
+        st.altair_chart(risk_chart, use_container_width=True)
 
-
-        c = (alt.Chart(summary_df).mark_circle()
+        risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
+        interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
+        size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
+        costs_chart = (alt.Chart(summary_df).mark_circle()
              .encode(x=alt.Y("Risk", scale=risk_scale),
                      y=alt.X("Avg Interest Rate", scale=interest_scale),
                      size=alt.Size("First Payment", scale=size_scale),
                      color='Name', tooltip=["Risk", "Avg Interest Rate", "Maximum Payment"])).properties(
             width=200, height=200)
 
-        st.altair_chart(c, use_container_width=True)
-
-
-        # radar_chart = alt.Chart(summary_df).mark_line().encode(
-        #     alt.Y('Name:N'),
-        #     alt.X('Avg Interest Rate', title='Interest Rate'),
-        #     alt.X2('Volatility Score', title='Volatility Score')
-        # ).properties(
-        #     title='Comparison of Loans'
-        # )
-        # st.altair_chart(radar_chart, use_container_width=True)
+        st.altair_chart(costs_chart, use_container_width=True)
 
 
 def load_mortgages_csv(max_files_uploads):

@@ -1,11 +1,11 @@
-import pandas as pd
 import altair as alt
 import streamlit as st
-from common_components import header, footer, display_table_with_total_row, parameters_bar
+from common_components import header, footer, display_table_with_total_row, parameters_bar, mortgage_editor
 from constants import CPI
 from finance_utils import banks_monthly_data
 from loan import Loan, LoanType
 from mortgage import Mortgage
+from pages.Planit_Compare import mortgage_comparison_report_details
 
 
 def compare_with_banks(amount, years):
@@ -22,6 +22,7 @@ def compare_with_banks(amount, years):
     banks_monthly_data_temp['Type'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: dict[x][0].name)
     banks_monthly_data_temp['CPI'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: CPI if dict[x][1] else 0)
 
+    mortgages = []
     tabs_banks = st.tabs(list(all_banks))
     for b_i, bank in enumerate(all_banks):
         loans = []
@@ -31,7 +32,10 @@ def compare_with_banks(amount, years):
                            loan_type=row['Type'], cpi=row['CPI'])]
         bank_mortgage = Mortgage(loans, name=bank)
         with tabs_banks[b_i]:
-            display_table_with_total_row(bank_mortgage.display_mortgage_info())
+            bank_mortgage_df = mortgage_editor(bank_mortgage.to_dataframe(), bank)
+            mortgages.append(Mortgage.from_dataframe(bank_mortgage_df, st.session_state.CPI, bank))
+
+    return mortgages
 
 
 if __name__ == '__main__':
@@ -47,7 +51,9 @@ if __name__ == '__main__':
     with cols[2]:
         parameters_bar()
 
-    compare_with_banks(amount, years)
+    mortages = compare_with_banks(amount, years)
+
+    mortgage_comparison_report_details(mortages)
 
     # Calculate the weighted interest rate for each row
     banks_monthly_data['Weighted Interest Rate'] = banks_monthly_data['Interest Rate'] * (
@@ -81,23 +87,6 @@ if __name__ == '__main__':
             title='Weighted Interest by route',
         )
         st.altair_chart(chart2)
-
-
-
-    # # Group by Bank and calculate the weighted average Interest Rate
-    # weighted_avg_df = banks_monthly_data.groupby('Bank').agg({'Weighted Interest Rate': 'sum', 'Route Composition': 'sum'})
-    # weighted_avg_df['IRR'] = weighted_avg_df['Weighted Interest Rate']
-    # weighted_avg_df['Interest Type'] = 'IRR'
-    # weighted_avg_df.reset_index(inplace=True)
-    # # Create a new row for IRR in the original dataframe for each bank
-    #
-    # # Create a new DataFrame for IRR rows
-    # irr_rows = weighted_avg_df[['Bank', 'IRR', 'Route Composition', 'Interest Type']].rename(
-    #     columns={'IRR': 'Interest Rate'})
-    #
-    #
-    # # Concatenate the original DataFrame with the new DataFrame for IRR rows
-    # df_with_irr = pd.concat([banks_monthly_data, irr_rows], ignore_index=True)
 
     chart_interest = alt.Chart(banks_monthly_data).mark_bar().encode(
         x=alt.X('Bank:N', title='Bank'),

@@ -1,8 +1,9 @@
 import numpy as np
+import pandas as pd
 import streamlit as st
 
 import constants
-from loan import Loan
+from loan import Loan, LoanType
 
 
 def header():
@@ -78,6 +79,48 @@ def plot_annual_amortization_monthly_line(mortgages, field):
     yearly_amortizations = [Loan.get_yearly_amortization(mortgage.amortization_schedule) for mortgage in mortgages]
     st.line_chart({f"{mortgages[i].name}": yearly_amortization[field] // 12 for i, yearly_amortization in
      enumerate(yearly_amortizations)})
+
+
+loan_type_keys = [enum_member.name for enum_member in LoanType]
+def mortgage_editor(mortgages_df:pd.DataFrame, name):
+    return st.data_editor(mortgages_df, key=f'data_{hash(mortgages_df.to_string(index=False))}_{name}',
+                   num_rows="dynamic",
+                   hide_index=True,
+                   column_config={
+                       'amount': st.column_config.NumberColumn('Amount',
+                                                               required=True,
+                                                               min_value=0,
+                                                               max_value=50000000
+                                                               ),
+                       'num_of_months': st.column_config.NumberColumn(
+                           'Months',
+                           required=True,
+                           min_value=0,
+                           max_value=360,
+                           default=240),
+                       'interest_rate': st.column_config.NumberColumn(
+                           'Interest Rate',
+                           required=True,
+                           min_value=0,
+                           max_value=20,
+                           default=5.1),
+                       'loan_type': st.column_config.SelectboxColumn(
+                           label='Loan Type', options=loan_type_keys,
+                           required=True),
+                       'grace_period': st.column_config.NumberColumn(
+                           'Grace Period',
+                           required=True,
+                           min_value=0,
+                           max_value=50,
+                           default=0),
+                       'cpi': st.column_config.CheckboxColumn(label='CPI',
+                                                              required=True,
+                                                              default=True)
+                   },
+                   column_order=['loan_type', 'cpi', 'amount', 'num_of_months',
+                                 'interest_rate',
+                                 'grace_period'],
+                   use_container_width=True)
 
 
 recycle_strategy_help = "The recycling strategy. Choosing 'Payment' will decrease your monthly payment while keeping the loan duration constant. " \

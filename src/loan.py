@@ -67,7 +67,7 @@ class Loan:
 
         for month in range(self.grace_period + 1, n + self.grace_period + 1):
             remaining_balance = remaining_balance * monthly_cpi
-            monthly_payment = -npf.pmt(r, self._num_of_months - month + 1, remaining_balance)
+            monthly_payment = -npf.pmt(r, self.num_of_months() - month + 1, remaining_balance)
             inflation_part = remaining_balance * (1 - 1 / monthly_cpi)
             interest_payment = remaining_balance * r
             principal_payment = monthly_payment - interest_payment

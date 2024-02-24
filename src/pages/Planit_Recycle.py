@@ -4,7 +4,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
-    recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int
+    recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int, mortgage_editor
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan
 from mortgage import Mortgage
@@ -13,42 +13,7 @@ import altair as alt
 
 def enter_mortgage_details():
     with st.container():
-        st.session_state.mortgages_df = st.data_editor(st.session_state.mortgages_df, num_rows="dynamic",
-                                                       hide_index=True,
-                                                       height=max([180, len(st.session_state.mortgages_df) * 20]),
-                                                       column_config={
-                                                           'amount': st.column_config.NumberColumn('Amount',
-                                                                                                   required=True,
-                                                                                                   min_value=0,
-                                                                                                   max_value=50000000
-                                                                                                   ),
-                                                           'num_of_months': st.column_config.NumberColumn('Months',
-                                                                                                          required=True,
-                                                                                                          min_value=0,
-                                                                                                          max_value=360,
-                                                                                                          default=220),
-                                                           'interest_rate': st.column_config.NumberColumn(
-                                                               'Interest Rate',
-                                                               required=True,
-                                                               min_value=0,
-                                                               max_value=20,
-                                                               default=5.1),
-                                                           'loan_type': st.column_config.TextColumn('Loan Type',
-                                                                                                    required=True),
-                                                           'grace_period': st.column_config.NumberColumn('Grace Period',
-                                                                                                         required=True,
-                                                                                                         min_value=0,
-                                                                                                         max_value=50,
-                                                                                                         default=0),
-                                                           'cpi': st.column_config.CheckboxColumn(label='CPI',
-                                                                                                  required=True,
-                                                                                                  default=True)
-                                                       },
-                                                       column_order=['loan_type', 'amount', 'num_of_months',
-                                                                     'interest_rate',
-                                                                     'grace_period', 'cpi'],
-                                                       use_container_width=True)
-
+        st.session_state.mortgages_df = mortgage_editor(st.session_state.mortgages_df, 'before')
 
 def display_yearly_amortization_table(mortgage, amortization_type):
     if amortization_type == 'Yearly':
