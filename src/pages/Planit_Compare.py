@@ -5,7 +5,8 @@ import altair as alt
 
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
     plot_annual_amortization_monthly_line
-from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
+from constants import CPI
+from finance_utils import banks_monthly_data
 from loan import Loan, LoanType
 from mortgage import Mortgage
 
@@ -107,61 +108,7 @@ def main_mortgage_comparison_report():
     mortgage_comparison_report_details(mortgages)
 
     st.divider()
-    # saving_investment(mortgage, mortgage_after)
 
-
-def saving_investment(mortgage: Mortgage, extra_payment: int):
-    amortization_schedule_period = MortgageRecycleInvestment(initial_fund=extra_payment,
-                                                             mortgage=mortgage,
-                                                             investment_yearly_return=st.session_state.StocksMarketYearlyReturn,
-                                                             change='period',
-                                                             stocks_yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
-                                                             gain_tax=st.session_state.TaxGainPercentage,
-                                                             name="Mortgage Recycle Period change").generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
-
-    amortization_schedule_payment = MortgageRecycleInvestment(initial_fund=extra_payment,
-                                                              mortgage=mortgage,
-                                                              investment_yearly_return=st.session_state.StocksMarketYearlyReturn,
-                                                              change='payment',
-                                                              stocks_yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
-                                                              gain_tax=st.session_state.TaxGainPercentage,
-                                                              name="Mortgage Recycle payment change").generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
-
-    stockmarket_schedule_payment = StocksMarketInvestment(initial_fund=extra_payment,
-                                                          yearly_return=st.session_state.StocksMarketYearlyReturn,
-                                                          yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
-                                                          gain_tax=st.session_state.TaxGainPercentage).generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
-
-    yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
-    yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
-    yearly_amortization_stockmarket = Investment.get_yearly_amortization(stockmarket_schedule_payment)
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        st.subheader(f"Yearly Savings (Agg.): ")
-        st.write(f'Extra Payment={extra_payment}')
-        st.line_chart({"Payment": yearly_amortization_payment['Monthly Extra'].cumsum(),
-                       "Period": yearly_amortization_period['Monthly Extra'].cumsum()},
-                      color=['#336699', '#66cc99'])
-
-    with col2:
-        col_21, col_22 = st.columns([1, 1])
-        with col_21:
-            st.subheader("Invested Savings (Agg.):")
-            col_21.write(
-                f"Assuming Stocks Return={st.session_state.StocksMarketYearlyReturn}%, "
-                f"Fees={st.session_state.StocksMarketFeesPercentage}%, "
-                f"Tax={st.session_state.TaxGainPercentage}\%")
-        with col_22:
-            investment_field = st.selectbox('Showing', ['Net Revenue', 'Total Revenue', 'Monthly Income'])
-
-        st.line_chart({"Payment": yearly_amortization_payment[investment_field],
-                       "Period": yearly_amortization_period[investment_field],
-                       f"Stock Market (No recycle)": yearly_amortization_stockmarket[investment_field]},
-                      color=['#336699', '#66cc99', '#cc9900'])
 
 
 def mortgage_comparison_report_details(mortgages):

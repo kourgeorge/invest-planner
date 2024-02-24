@@ -3,6 +3,9 @@ import pandas as pd
 from scipy.stats import norm
 
 
+banks_monthly_data = pd.read_csv('data/israel_banks_monthly.csv')
+
+
 class CPIVAR:
     base = None
 

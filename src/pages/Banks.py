@@ -1,7 +1,37 @@
 import pandas as pd
 import altair as alt
 import streamlit as st
-from common_components import header, footer
+from common_components import header, footer, display_table_with_total_row, parameters_bar
+from constants import CPI
+from finance_utils import banks_monthly_data
+from loan import Loan, LoanType
+from mortgage import Mortgage
+
+
+def compare_with_banks(amount, years):
+    dict= {'Fixed Non-Linked': (LoanType.FIXED, False),
+           'Prime': (LoanType.PRIME, False),
+           'Variable Non-Linked': (LoanType.ARM, False),
+           'Variable Index-Linked': (LoanType.ARM, True),
+           'Fixed Index-Linked': (LoanType.FIXED, True)
+           }
+
+    all_banks = banks_monthly_data['Bank'].unique()
+    banks_monthly_data_temp = banks_monthly_data.copy()
+    banks_monthly_data_temp['amount'] = banks_monthly_data_temp['Route Composition'] / 100 * amount
+    banks_monthly_data_temp['Type'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: dict[x][0].name)
+    banks_monthly_data_temp['CPI'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: CPI if dict[x][1] else 0)
+
+    tabs_banks = st.tabs(list(all_banks))
+    for b_i, bank in enumerate(all_banks):
+        loans = []
+        bank_maslolim = banks_monthly_data_temp[banks_monthly_data_temp['Bank'] == bank]
+        for index, row in bank_maslolim.iterrows():
+            loans += [Loan(row['amount'], years*12, interest_rate=row['Interest Rate'],
+                           loan_type=row['Type'], cpi=row['CPI'])]
+        bank_mortgage = Mortgage(loans, name=bank)
+        with tabs_banks[b_i]:
+            display_table_with_total_row(bank_mortgage.display_mortgage_info())
 
 
 if __name__ == '__main__':
@@ -9,8 +39,16 @@ if __name__ == '__main__':
     st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
     header()
+    cols = st.columns([1,1,3], gap='large')
+    with cols[0]:
+        amount = st.number_input(label="Amount", min_value=0, max_value=10000000, value=500000, step=100000)
+    with cols[1]:
+        years = st.number_input(label="Years", min_value=0, max_value=30, step=1, value=20)
+    with cols[2]:
+        parameters_bar()
 
-    banks_monthly_data = pd.read_csv('data/israel_banks_monthly.csv')
+    compare_with_banks(amount, years)
+
     # Calculate the weighted interest rate for each row
     banks_monthly_data['Weighted Interest Rate'] = banks_monthly_data['Interest Rate'] * (
                 banks_monthly_data['Route Composition'] / 100)
@@ -74,6 +112,5 @@ if __name__ == '__main__':
 
     st.altair_chart(chart_interest)
 
-
-
     footer()
+
