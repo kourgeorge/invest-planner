@@ -375,8 +375,8 @@ def get_example_mortgage():
                         columns=list(Mortgage.columns_types().keys())).astype(
         Mortgage.columns_types())
 
-def main():
 
+def main():
     st.set_page_config(page_title='Mortgage Recycling', layout='wide', page_icon="📈")
 
     header()

@@ -64,6 +64,7 @@ class Mortgage:
                 loan.loan_type,
                 "{:,.0f}".format(loan.amount),
                 f'{loan._num_of_months} ({np.round(loan._num_of_months / 12, 1)} y)',
+                "{:,.0f}%".format(loan.loan_amount()/self.loan_amount()*100),
                 "{}%".format(loan.interest_rate),
                 "{}%".format(loan.cpi),
                 loan.grace_period,
@@ -76,7 +77,7 @@ class Mortgage:
 
         loan_details.append([
             'Total', 'Mortgage', "{:,.0f}".format(self.loan_amount()),
-            f'{self.num_of_months()} ({np.round(self.num_of_months() / 12, 1)} y)',
+            f'{self.num_of_months()} ({np.round(self.num_of_months() / 12, 1)} y)', '',
             "{:,.2f}%".format(self.average_interest_rate()), '', '', "{:,.0f}".format(self.average_monthly_payment()),
             "{:,.0f}".format(self.monthly_payment(0)),
             "{:,.0f}".format(self.total_interest_payments()), "{:,.0f}".format(self.total_payments()),
@@ -84,7 +85,7 @@ class Mortgage:
         ])
 
         # Define column headers
-        headers = ["Loan #", "Loan Type", "Loan Amount", "Number of Months", "Interest Rate", "CPI",
+        headers = ["Loan #", "Loan Type", "Loan Amount", "Number of Months", "Mortgage Percent", "Interest Rate", "CPI",
                    "Grace Period", "Avg. Monthly Payment", "First Payment", "Total Interest", "Total Cost",
                    "Cost to Currency"]
 
