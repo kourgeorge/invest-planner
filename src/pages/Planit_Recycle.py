@@ -1,12 +1,11 @@
 import numpy as np
 import streamlit as st
 import pandas as pd
-from matplotlib import pyplot as plt
 
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
     recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int, mortgage_editor
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
-from loan import Loan
+from loan import Loan, LoanType
 from mortgage import Mortgage
 import altair as alt
 
@@ -334,9 +333,9 @@ def invested_savings_options_terminology():
         st.table(df.reset_index(drop=True))
 
 def get_example_mortgage():
-    return pd.DataFrame([[158334, 180, 5.149, 'Kalatz', 0, False],
-                         [158333, 180, 5.55, 'Prime', 0, False],
-                         [158333, 180, 3.06, 'MishtanaTsmoda', 0, True]],
+    return pd.DataFrame([[158334, 180, 5.149, LoanType.FIXED.name, 0, False],
+                         [158333, 180, 5.55, LoanType.PRIME.name, 0, False],
+                         [158333, 180, 3.06, LoanType.PRIME.ARM.name, 0, True]],
                         columns=list(Mortgage.columns_types().keys())).astype(
         Mortgage.columns_types())
 
