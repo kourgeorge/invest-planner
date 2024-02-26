@@ -83,7 +83,7 @@ def plot_annual_amortization_monthly_line(mortgages, field):
 
 loan_type_keys = [enum_member.name for enum_member in LoanType]
 def mortgage_editor(mortgages_df:pd.DataFrame, name):
-    return st.data_editor(mortgages_df, key=f'data_{hash(mortgages_df.to_string(index=False))}_{name}',
+    return st.data_editor(mortgages_df, key=name,
                    num_rows="dynamic",
                    hide_index=True,
                    column_config={

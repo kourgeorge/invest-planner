@@ -16,14 +16,14 @@ def compare_with_banks(amount, years):
            'Fixed Index-Linked': (LoanType.FIXED, True)
            }
 
-    all_banks = banks_monthly_data['Bank'].unique()
+    all_banks = list(banks_monthly_data['Bank'].unique())
     banks_monthly_data_temp = banks_monthly_data.copy()
     banks_monthly_data_temp['amount'] = banks_monthly_data_temp['Route Composition'] / 100 * amount
     banks_monthly_data_temp['Type'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: dict[x][0].name)
     banks_monthly_data_temp['CPI'] = banks_monthly_data_temp['Interest Type'].apply(lambda x: CPI if dict[x][1] else 0)
 
     mortgages = []
-    tabs_banks = st.tabs(list(all_banks))
+    tabs_banks = st.tabs(all_banks)
     for b_i, bank in enumerate(all_banks):
         loans = []
         bank_maslolim = banks_monthly_data_temp[banks_monthly_data_temp['Bank'] == bank]
@@ -32,7 +32,7 @@ def compare_with_banks(amount, years):
                            loan_type=row['Type'], cpi=row['CPI'])]
         bank_mortgage = Mortgage(loans, name=bank)
         with tabs_banks[b_i]:
-            bank_mortgage_df = mortgage_editor(bank_mortgage.to_dataframe(), bank)
+            bank_mortgage_df = mortgage_editor(bank_mortgage.to_dataframe(), f'{bank}')
             mortgages.append(Mortgage.from_dataframe(bank_mortgage_df, st.session_state.CPI, bank))
 
     return mortgages
