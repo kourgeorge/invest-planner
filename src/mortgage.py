@@ -282,7 +282,7 @@ class Mortgage:
                 'interest_rate': loan.average_interest_rate(),
                 'loan_type': loan.loan_type,
                 'grace_period': loan.grace_period,
-                'cpi': loan.cpi
+                'cpi': loan.cpi > 0
             })
 
         # Create a DataFrame from the list of loan dictionaries
