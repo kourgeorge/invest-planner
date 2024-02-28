@@ -304,7 +304,7 @@ def summary_section(mortgage_before, mortgage_after):
                       delta_color='inverse')
 
         with st2_2:
-            st.metric(label='First Monthly Payment', value="{:,.0f}".format(savings_row["First Payment"]),
+            st.metric(label='First Monthly Payment', value="{:,.0f}".format(after_row["First Payment"]),
                       delta=f'{int(after_row["First Payment"] - before_row["First Payment"])} ILS', delta_color='inverse')
 
             st.metric(label='Risk', value="{:,.0f}".format(savings_row["Risk"]),
@@ -314,7 +314,6 @@ def summary_section(mortgage_before, mortgage_after):
             st.metric(label='Period Change (Months)', value="{:,.0f}".format(savings_row["Period (Years)"]),
                       delta=f'{-np.round(savings_row["Period (Years)"] / before_row["Period (Years)"] * 100, 2)}%',
                       delta_color='inverse')
-
 
         # Melt the DataFrame to make it suitable for a stacked bar chart
         melted_df = pd.melt(summary_df.drop(index=summary_df.index[-1]), id_vars=["Name"], value_vars=["Amount", "Interest", "Indexation"])
