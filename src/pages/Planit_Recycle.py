@@ -14,6 +14,7 @@ def enter_mortgage_details():
     with st.container():
         st.session_state.mortgages_df = mortgage_editor(st.session_state.mortgages_df, 'before')
 
+
 def display_yearly_amortization_table(mortgage, amortization_type):
     if amortization_type == 'Yearly':
         amortization = Loan.get_yearly_amortization(mortgage.amortization_schedule.reset_index())
@@ -253,56 +254,80 @@ def bars_summary_section(mortgage_before, mortgage_after):
 
 def summary_section(mortgage_before, mortgage_after):
     # Use the last item in the dataframes for "Interest Payment"
-    total_interest_payment_before = mortgage_before.total_interest_payments()
-    total_interest_payment_after = mortgage_after.total_interest_payments()
 
+    mortgages = [mortgage_before, mortgage_after]
     summary_data = {
-        "Metric": ["Amount", "Cost", "Period (Months)", "Interest Payment", "Avg. Interest Rate", "Avg. Monthly Payment",
-                   "First Payment", " Estimated Max Payment", "Volatility Score"],
-        "Before": [np.round(mortgage_before.loan_amount()),
-                   np.round(mortgage_before.total_payments()), int(mortgage_before.num_of_months()),
-                   np.round(total_interest_payment_before),
-                   np.round(mortgage_before.average_interest_rate(), 2),
-                   np.round(mortgage_before.average_monthly_payment()), np.round(mortgage_before.monthly_payment(0)),
-                   np.round(mortgage_before.highest_monthly_payment()), mortgage_before.get_volatility()],
-        "After": [np.round(mortgage_after.loan_amount()),
-                  np.round(mortgage_after.total_payments()), int(mortgage_after.num_of_months()),
-                  np.round(total_interest_payment_after),
-                  np.round(mortgage_after.average_interest_rate(), 2),
-                  np.round(mortgage_after.average_monthly_payment()), np.round(mortgage_after.monthly_payment(0)),
-                  np.round(mortgage_after.highest_monthly_payment()), mortgage_after.get_volatility()],
-        "Savings": [0, np.round(mortgage_before.total_payments() - mortgage_after.total_payments()),
-                    int(mortgage_before.num_of_months()) - int(mortgage_after.num_of_months()),
-                    np.round(total_interest_payment_before - total_interest_payment_after),
-                    np.round(mortgage_before.average_interest_rate() - mortgage_after.average_interest_rate(), 2),
-                    np.round(mortgage_before.average_monthly_payment() - mortgage_after.average_monthly_payment()),
-                    np.round(mortgage_before.monthly_payment(0) - mortgage_after.monthly_payment(0)),
-                    np.round(mortgage_before.highest_monthly_payment() - mortgage_after.highest_monthly_payment()),
-                    mortgage_before.get_volatility() - mortgage_after.get_volatility()]
+        "Name": [mortgage.name for mortgage in mortgages],
+        "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
+        "Period (Years)": [np.round(mortgage.num_of_months(),2) for mortgage in mortgages],
+        "Interest": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Indexation": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
+        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
+        "Cost per Currency": [np.round(mortgage.cost_per_currency(), 2) for mortgage in mortgages],
+        "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
+        "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
+        "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
+        "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
-    print(summary_data)
+
+    # Add the savings row.
     summary_df = pd.DataFrame(summary_data)
+    # Filter only numeric columns
+    numeric_columns = summary_df.select_dtypes(include='number')
+    # Add a new row which is the sum of the previous two rows for numeric columns
+    new_row = numeric_columns.iloc[-2] - numeric_columns.iloc[-1]
+    # Append the new row to the original DataFrame
+    summary_df = pd.concat([summary_df, pd.DataFrame([new_row], columns=numeric_columns.columns)], ignore_index=True)
+    summary_df.at[summary_df.index[-1], 'Name'] = 'Savings'
+    savings_row = summary_df.iloc[-1]
+    before_row = summary_df.iloc[0]
+    after_row = summary_df.iloc[1]
 
-    col1, col_gap, col2, col3 = st.columns([4, 0.5, 1, 1])
+    col1, col_gap, col2 = st.columns([3, 0.3, 2])
+
     with col1:
-        st.dataframe(summary_df,
-                     use_container_width=True, hide_index=True)
+        st.dataframe(summary_df.set_index(keys='Name').transpose(), use_container_width=True, hide_index=False)
     with col2:
-        st.metric(label='Interest Savings', value="{:,.0f}".format(summary_df["Savings"][3]),
-                  delta=f'{-np.round(summary_df["Savings"][3] / summary_df["Before"][3] * 100, 2)}%',
-                  delta_color='inverse')
-        st.write('')
+        st2_1, st2_2 = st.columns(2)
 
-        st.metric(label='Cost Savings', value="{:,.0f}".format(summary_df["Savings"][1]),
-                  delta=f'{-np.round(summary_df["Savings"][1] / summary_df["Before"][1] * 100, 2)}%',
-                  delta_color='inverse')
-    with col3:
-        st.metric(label='First Monthly Payment', value="{:,.0f}".format(summary_df["After"][6]),
-                  delta=f'{int(summary_df["After"][6] - summary_df["Before"][6])} ILS', delta_color='inverse')
-        st.write('')
-        st.metric(label='Period Change (Months)', value="{:,.0f}".format(summary_df["Savings"][2]),
-                  delta=f'{-np.round(summary_df["Savings"][2] / summary_df["Before"][2] * 100, 2)}%',
-                  delta_color='inverse')
+        with st2_1:
+            st.metric(label='Interest Savings', value="{:,.0f}".format(savings_row["Interest"]),
+                      delta=f'{-np.round(savings_row["Interest"] / before_row["Interest"] * 100, 2)}%',
+                      delta_color='inverse')
+
+            st.metric(label='Indexation Savings', value="{:,.0f}".format(savings_row["Indexation"]),
+                      delta=f'{-np.round(savings_row["Indexation"] / before_row["Indexation"] * 100, 2)}%',
+                      delta_color='inverse')
+
+            st.metric(label='Cost Savings', value="{:,.0f}".format(savings_row["Cost"]),
+                      delta=f'{-np.round(savings_row["Cost"] / before_row["Cost"] * 100, 2)}%',
+                      delta_color='inverse')
+
+        with st2_2:
+            st.metric(label='First Monthly Payment', value="{:,.0f}".format(savings_row["First Payment"]),
+                      delta=f'{int(after_row["First Payment"] - before_row["First Payment"])} ILS', delta_color='inverse')
+
+            st.metric(label='Risk', value="{:,.0f}".format(savings_row["Risk"]),
+                      delta=f'{-np.round(savings_row["Risk"] / before_row["Risk"] * 100, 2)}%',
+                      delta_color='inverse')
+
+            st.metric(label='Period Change (Months)', value="{:,.0f}".format(savings_row["Period (Years)"]),
+                      delta=f'{-np.round(savings_row["Period (Years)"] / before_row["Period (Years)"] * 100, 2)}%',
+                      delta_color='inverse')
+
+
+        # Melt the DataFrame to make it suitable for a stacked bar chart
+        melted_df = pd.melt(summary_df.drop(index=summary_df.index[-1]), id_vars=["Name"], value_vars=["Amount", "Interest", "Indexation"])
+        risk_chart = alt.Chart(melted_df).mark_bar().encode(
+            x=alt.X('sum(value)', axis=alt.Axis(title=None)),
+            y=alt.Y('Name', sort=['Before', 'After'] , axis=alt.Axis(title=None)),
+            color=alt.Color('variable', scale=alt.Scale(range=['#9ACD32', '#FFD700', '#FF6347'])),
+            tooltip=['Name', 'variable', 'value']
+        ).properties(
+            title='Costs'
+        )
+        st.altair_chart(risk_chart, use_container_width=True)
+
 
 
 def load_mortgage_csv():
