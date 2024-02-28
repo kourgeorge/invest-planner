@@ -148,6 +148,7 @@ def summary_section(mortgages):
         "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
         "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "Cost per Currency": [np.round(mortgage.cost_per_currency(),2) for mortgage in mortgages],
+        "IRR": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
     summary_df_table = pd.DataFrame(summary_data)
@@ -174,7 +175,7 @@ def summary_section(mortgages):
         st.altair_chart(risk_chart, use_container_width=True)
 
         risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
-        interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-1, summary_df["Avg Interest Rate"].max()+1))
+        interest_scale = alt.Scale(domain=(summary_df["Avg Interest Rate"].min()-0.1, summary_df["Avg Interest Rate"].max()+0.1))
         size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
         costs_chart = (alt.Chart(summary_df).mark_circle()
              .encode(x=alt.Y("Risk", scale=risk_scale),

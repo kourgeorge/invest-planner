@@ -109,6 +109,9 @@ class Loan:
             self.set_period(0)
         self.amortization_schedule = self.generate_amortization_schedule()
 
+    def get_irr(self):
+        return npf.irr([-self.loan_amount()]+self.amortization_schedule['Monthly Payment'].tolist())*12*100
+
     def monthly_payment(self, month):
         if month < 0 or month > self.num_of_months():
             return 0

@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+import numpy_financial as npf
 import pandas as pd
 import tabulate
 from loan import Loan
@@ -190,6 +191,8 @@ class Mortgage:
         else:
             return self.amortization_schedule['Inflation Payment'].sum()
 
+    def get_irr(self):
+        return npf.irr([-self.loan_amount()]+self.amortization_schedule['Monthly Payment'].tolist())*12*100
 
     def interest_payment(self, month):
         return 0 if month >= self.num_of_months() else self.amortization_schedule.loc[month, 'Interest Payment']
