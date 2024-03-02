@@ -306,7 +306,7 @@ class Mortgage:
             target_loan = recycled_mortgage.loans[loan_index]
             loan_payback = min([MortgageRecycleIterationAmount, remainder, target_loan.loan_amount()])
             remainder -= loan_payback
-            payback_remainder = recycled_mortgage.payback_loan(loan_index, loan_payback)
+            payback_remainder = recycled_mortgage.payback_loan(loan_index, loan_payback, change=change)
             assert payback_remainder == 0
             remainder += payback_remainder
             print(f'{target_loan.loan_type} after:{remainder} paid:{loan_payback} remainder:{payback_remainder}')
@@ -324,8 +324,6 @@ class Mortgage:
             return Mortgage._reduce_mortgage_monthly(mortgage, extra_payment)
 
         recycled_mortgage: Mortgage = copy.deepcopy(mortgage)
-        if extra_payment == 0:
-            return recycled_mortgage
 
         if extra_payment == 0 or mortgage.is_fully_repaid():
             return recycled_mortgage
@@ -339,6 +337,7 @@ class Mortgage:
             cost_per_currency = [loan.cost_per_currency() for loan in relevant_loans if loan.loan_amount() > 0]
             target_loan_index = cost_per_currency.index(max(cost_per_currency))
             target_loan = relevant_loans[target_loan_index]
+            #the payback is the minimum between the remaider and the ...
             loan_payback = min([remainder, Loan.min_monthly_increase(target_loan) - target_loan.monthly_payment(0)+1])
             target_loan.change_first_payment(loan_payback)
             recycled_mortgage.amortization_schedule = recycled_mortgage.generate_amortization_schedule()
