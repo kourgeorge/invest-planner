@@ -1,7 +1,6 @@
 import numpy as np
 import streamlit as st
 import pandas as pd
-
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
     recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int, mortgage_editor
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
@@ -12,7 +11,13 @@ import altair as alt
 
 def enter_mortgage_details():
     with st.container():
-        st.session_state.mortgages_df = mortgage_editor(st.session_state.mortgages_df, 'before')
+        if len(st.session_state.mortgages_df) == 0:
+            return
+        tabs = st.tabs(st.session_state.mortgages_name)
+        for i in range(len(st.session_state.mortgages_df)):
+            with tabs[i]:
+                st.session_state.mortgages_df[i] = mortgage_editor(st.session_state.mortgages_df[i], st.session_state.mortgages_name[i])
+            st.session_state.mortgages[i] = Mortgage.from_dataframe(st.session_state.mortgages_df[i], name=st.session_state.mortgages_name[i])
 
 
 def display_yearly_amortization_table(mortgage, amortization_type):
@@ -73,19 +78,35 @@ def plot_principal_interest_yearly(yearly_amortization_before, yearly_amortizati
         }, color=['#FF5733', '#FFD700'])
 
 
-def main_mortgage_recycle_report(extra_payment, extra_monthly, change):
-    if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df) or len(
-            st.session_state.mortgages_df) == 0:
-        return
-    else:
-        mortgage = Mortgage.from_dataframe(st.session_state.mortgages_df, st.session_state.CPI, name="Before")
+def prepare_mortgage_recycle():
+    # if st.session_state.mortgages_df is None or not Mortgage.validate_dataframe(st.session_state.mortgages_df[0]) or len(
+    #         st.session_state.mortgages_df) == 0:
+    #     return
+    # else:
 
-    mortgage_after = Mortgage.recycle_mortgage(mortgage=mortgage, extra_payment=extra_payment,
-                                               change=change) if extra_payment > 0 else mortgage
-    extra_actual_monthly = (mortgage.monthly_payment(0) - mortgage_after.monthly_payment(0) + extra_monthly) if extra_monthly != 0 else 0
-    mortgage_after = Mortgage.recycle_mortgage_monthly(mortgage=mortgage_after,
-                                                       extra_payment=extra_actual_monthly) if extra_actual_monthly != 0 else mortgage_after
-    mortgage_after.name = 'After'
+    st.session_state.mortgages[0] = Mortgage.from_dataframe(st.session_state.mortgages_df[0], st.session_state.CPI,
+                                                            name="Before")
+
+    st.session_state.mortgages[1] = Mortgage.recycle_mortgage(mortgage=st.session_state.mortgages[0],
+                                                              extra_payment=st.session_state.extra_payment,
+                                                              change=st.session_state.change) if st.session_state.extra_payment > 0 else \
+    st.session_state.mortgages[0]
+    st.session_state.mortgages_df[1] = st.session_state.mortgages[1].to_dataframe()
+
+    st.session_state.extra_actual_monthly = (
+                st.session_state.mortgages[0].monthly_payment(0) - st.session_state.mortgages[1].monthly_payment(0)
+                + st.session_state.extra_monthly) if st.session_state.extra_monthly != 0 else 0
+
+    st.session_state.mortgages[1] = Mortgage.recycle_mortgage_monthly(mortgage=st.session_state.mortgages[1],
+                                                                      extra_payment=st.session_state.extra_actual_monthly) if st.session_state.extra_actual_monthly != 0 else \
+    st.session_state.mortgages[1]
+    st.session_state.mortgages_df[1] = st.session_state.mortgages[1].to_dataframe()
+    st.session_state.mortgages[1].name = 'After'
+
+    enter_mortgage_details()
+
+
+def main_mortgage_recycle_report(mortgage, mortgage_after, extra_payment, extra_monthly):
 
     mortgage_recycle_report_details(mortgage, mortgage_after)
 
@@ -152,7 +173,7 @@ def show_loans_recycling_details(mortgage_before, mortgage_after):
     df_before = mortgage_before.get_mortgage_info()
     df_after = mortgage_after.get_mortgage_info()
     # Merge dataframes on 'Loan #'
-    merged_df = pd.merge(df_before, df_after, on='Loan Type', suffixes=('_before', '_after'))
+    merged_df = pd.merge(df_before, df_after, on=['Loan Type', 'Interest Rate'], suffixes=('_before', '_after'))
 
     columns_to_include = ['Loan Amount',  'First Payment', 'Number of Months', 'Total Interest', 'Total Cost']
     # Create a new DataFrame with formatted values
@@ -160,18 +181,6 @@ def show_loans_recycling_details(mortgage_before, mortgage_after):
     formatted_df['Loan Type'] = merged_df['Loan Type']
 
     for column in columns_to_include:
-    #     formatted_df[column] = merged_df.apply(
-    #         lambda row: "{:,.0f} → {:,.0f} \t({:,.0f})".format((row[f'{column}_before']),
-    #                                                            (row[f'{column}_after']),
-    #                                                            (row[f'{column}_after']) - (
-    #                                                                row[f'{column}_before'])),
-    #         axis=1)
-    # formatted_df['Cost to Currency'] = merged_df.apply(
-    #     lambda row: "{:,.2f} → {:,.2f} ({:,.3f})".format((row['Cost to Currency_before']),
-    #                                                      (row['Cost to Currency_after']),
-    #                                                      (row['Cost to Currency_after']) - (
-    #                                                          row['Cost to Currency_before'])), axis=1)
-
         formatted_df[column] = merged_df.apply(lambda row: "{:,.0f}".format(row[f'{column}_after'] - row[f'{column}_before']), axis=1)
     formatted_df['Cost to Currency'] = merged_df.apply(lambda row: "{:,.3f}".format(row['Cost to Currency_after'] - row['Cost to Currency_before']), axis=1)
 
@@ -182,10 +191,14 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
     st.divider()
 
     st.subheader(f"Mortgage Information")
-
     summary_section(mortgage_before, mortgage_after)
 
-    with st.expander("Loans Recycling Plan", expanded=True):
+    st.divider()
+    st.subheader("Recycling Plan")
+    merged = show_loans_recycling_details(mortgage_before, mortgage_after)
+    st.table(merged)
+
+    with st.expander("Mortgages Data", expanded=False):
         # col1, col2 = st.columns([1,1])
         # with col1:
         # st.subheader("Current Mortgage Details:")
@@ -193,7 +206,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
         # # with col2:
         # st.subheader("Recycled Mortgage Details:")
         # display_mortgage_info(mortgage_after)
-        merged = show_loans_recycling_details(mortgage_before, mortgage_after)
+
         cols = st.columns(2, gap='large')
         with cols[0]:
             st.write("Loans status Before")
@@ -201,7 +214,7 @@ def mortgage_recycle_report_details(mortgage_before: Mortgage, mortgage_after: M
                                              ['Loan Type', 'Loan Amount', 'First Payment', 'Number of Months',
                                               'Total Interest', 'Total Cost', 'Cost to Currency']])
         with cols[1]:
-            st.write("Loans Change")
+            st.write("Loans After")
             # display_table_with_total_row(merged)
             display_table_with_total_row(mortgage_after.display_mortgage_info()[
                                              ['Loan Type', 'Loan Amount', 'First Payment', 'Number of Months',
@@ -266,7 +279,7 @@ def summary_section(mortgage_before, mortgage_after):
         "Cost per Currency": [np.round(mortgage.cost_per_currency(), 2) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
-        "Avg Interest Rate": [np.round(mortgage.average_interest_rate(), 2) for mortgage in mortgages],
+        "Total Predicted Interest (IRR)": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
 
@@ -278,6 +291,8 @@ def summary_section(mortgage_before, mortgage_after):
     new_row = numeric_columns.iloc[-2] - numeric_columns.iloc[-1]
     # Append the new row to the original DataFrame
     summary_df = pd.concat([summary_df, pd.DataFrame([new_row], columns=numeric_columns.columns)], ignore_index=True)
+    extra = mortgage_before.loan_amount() - mortgage_after.loan_amount() # reduce the loan amount from the cost savings
+    summary_df.at[summary_df.index[-1], 'Cost'] -=  extra
     summary_df.at[summary_df.index[-1], 'Name'] = 'Savings'
     savings_row = summary_df.iloc[-1]
     before_row = summary_df.iloc[0]
@@ -300,7 +315,7 @@ def summary_section(mortgage_before, mortgage_after):
                       delta_color='inverse')
 
             st.metric(label='Cost Savings', value="{:,.0f}".format(savings_row["Cost"]),
-                      delta=f'{-np.round(savings_row["Cost"] / before_row["Cost"] * 100, 2)}%',
+                      delta=f'{-np.round(savings_row["Cost"] / (before_row["Cost"]-mortgage_before.loan_amount()) * 100, 2)}%',
                       delta_color='inverse')
 
         with st2_2:
@@ -315,7 +330,7 @@ def summary_section(mortgage_before, mortgage_after):
                       delta=f'{-np.round(savings_row["Period (Years)"] / before_row["Period (Years)"] * 100, 2)}%',
                       delta_color='inverse')
 
-        # Melt the DataFrame to make it suitable for a stacked bar chart
+        # remove the savings row, melt the DataFrame to make it suitable for a stacked bar chart
         melted_df = pd.melt(summary_df.drop(index=summary_df.index[-1]), id_vars=["Name"], value_vars=["Amount", "Interest", "Indexation"])
         risk_chart = alt.Chart(melted_df).mark_bar().encode(
             x=alt.X('sum(value)', axis=alt.Axis(title=None)),
@@ -328,13 +343,12 @@ def summary_section(mortgage_before, mortgage_after):
         st.altair_chart(risk_chart, use_container_width=True)
 
 
-
 def load_mortgage_csv():
     st.session_state.files = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
                                               label_visibility="hidden", type=['csv', 'txt'])
 
     if st.session_state.files is not None:
-        st.session_state.mortgages_df = pd.read_csv(st.session_state.files,
+        st.session_state.mortgages_df[0] = pd.read_csv(st.session_state.files,
                                                     dtype={'amount': float, 'num_of_months': int,
                                                            'interest_rate': float,
                                                            'loan_type': str,
@@ -369,9 +383,9 @@ def main():
 
     header()
     st.title('Mortgage Recycling Calculator')
-    st.session_state.mortgages_df = get_example_mortgage()
-        # pd.DataFrame(columns=list(Mortgage.columns_types().keys())).astype(
-        # Mortgage.columns_types())
+    st.session_state.mortgages_df = [get_example_mortgage(), get_example_mortgage()]
+    st.session_state.mortgages = [Mortgage.from_dataframe(get_example_mortgage()), Mortgage.from_dataframe(get_example_mortgage()),]
+    st.session_state.mortgages_name = ['Before', 'After']
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -381,24 +395,27 @@ def main():
         parameters_bar()
 
     col1, col2, col3 = st.columns([3, 1, 1], gap='large')
-    with col1:
-        enter_mortgage_details()
     with col2:
-        start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df['amount'].sum() // 100000) * 10000])))
-        extra_payment = st.number_input('Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
-                                        max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())))
+        start_value = int(np.floor(np.min([100000, (st.session_state.mortgages_df[0]['amount'].sum() // 100000) * 10000])))
+        st.session_state.extra_payment = st.number_input('Extra Amount:', min_value=0, value=start_value, step=start_value // 10,
+                                        max_value=int(np.ceil(st.session_state.mortgages_df[0]['amount'].sum())))
 
-        is_adding_monthly = st.checkbox('Monthly Extra')
-        extra_payment_monthly = st.number_input('extra', min_value=-2000, value=0,
+        st.session_state.is_adding_monthly = st.checkbox('Monthly Extra')
+        st.session_state.extra_payment_monthly = st.number_input('extra', min_value=-2000, value=0,
                                                 step=start_value // 1000,
-                                                max_value=int(np.ceil(st.session_state.mortgages_df['amount'].sum())),
-                                                key="monthly_extra", disabled=not is_adding_monthly, label_visibility="collapsed")
+                                                max_value=int(np.ceil(st.session_state.mortgages_df[0]['amount'].sum())),
+                                                key="monthly_extra", disabled=not st.session_state.is_adding_monthly, label_visibility="collapsed")
 
-    extra_monthly = 0 if not is_adding_monthly else extra_payment_monthly
+    st.session_state.extra_monthly = 0 if not st.session_state.is_adding_monthly else st.session_state.extra_payment_monthly
     with col3:
-        change = st.selectbox('Reduce:', ['Payment', 'Period'], help=recycle_strategy_help, disabled=(extra_payment==0))
+        st.session_state.change = st.selectbox('Reduce:', ['Payment', 'Period'], help=recycle_strategy_help, disabled=(st.session_state.extra_payment==0))
 
-    main_mortgage_recycle_report(extra_payment, extra_monthly, change)
+
+    with col1:
+        prepare_mortgage_recycle()
+
+
+    main_mortgage_recycle_report(st.session_state.mortgages[0], st.session_state.mortgages[1], st.session_state.extra_payment, st.session_state.extra_monthly)
 
     st.divider()
     invested_savings_options_terminology()
