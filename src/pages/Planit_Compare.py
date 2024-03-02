@@ -143,9 +143,9 @@ def summary_section(mortgages):
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
         "Period (Years)": [np.round(mortgage.num_of_months()/12,2) for mortgage in mortgages],
         "Interest": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
-        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "Cost per Currency": [np.round(mortgage.cost_per_currency(),2) for mortgage in mortgages],
         "Total Predicted Interest (IRR)": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
@@ -175,11 +175,11 @@ def summary_section(mortgages):
 
         y_axis_column = 'Total Predicted Interest (IRR)'
         risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
-        interest_scale = alt.Scale(domain=(summary_df[y_axis_column].min()-0.1, summary_df[y_axis_column].max()+0.1))
-        size_scale = alt.Scale(domain=(summary_df['First Payment'].min()*0.9, summary_df['First Payment'].max()))
+        interest_scale = alt.Scale(domain=(summary_df[y_axis_column].min() - 0.1, summary_df[y_axis_column].max() + 0.1))
+        size_scale = alt.Scale(domain=(summary_df['First Payment'].min() * 0.9, summary_df['First Payment'].max()))
         costs_chart = (alt.Chart(summary_df).mark_circle()
              .encode(x=alt.Y("Risk", scale=risk_scale),
-                     y=alt.X("Avg Interest Rate", scale=interest_scale),
+                     y=alt.X(y_axis_column, scale=interest_scale),
                      size=alt.Size("First Payment", scale=size_scale),
                      color='Name', tooltip=["Risk", y_axis_column, "Maximum Payment"])).properties(
             width=200, height=200)
