@@ -181,7 +181,7 @@ def summary_section(mortgages):
              .encode(x=alt.Y("Risk", scale=risk_scale),
                      y=alt.X("Avg Interest Rate", scale=interest_scale),
                      size=alt.Size("First Payment", scale=size_scale),
-                     color='Name', tooltip=["Risk", "Avg Interest Rate", "Maximum Payment"])).properties(
+                     color='Name', tooltip=["Risk", y_axis_column, "Maximum Payment"])).properties(
             width=200, height=200)
 
         st.altair_chart(costs_chart, use_container_width=True)

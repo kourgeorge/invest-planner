@@ -51,9 +51,9 @@ if __name__ == '__main__':
     with cols[2]:
         parameters_bar()
 
-    mortages = compare_with_banks(amount, years)
+    mortgages = compare_with_banks(amount, years)
 
-    mortgage_comparison_report_details(mortages)
+    mortgage_comparison_report_details(mortgages)
 
     # Calculate the weighted interest rate for each row
     banks_monthly_data['Weighted Interest Rate'] = banks_monthly_data['Interest Rate'] * (
