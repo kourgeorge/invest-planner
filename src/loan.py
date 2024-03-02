@@ -14,7 +14,7 @@ class LoanType(Enum):
 
 class Loan:
     def __init__(self, amount, num_of_months, interest_rate, loan_type=LoanType, grace_period=0, cpi=CPI):
-        assert grace_period < num_of_months
+        # assert grace_period < num_of_months
         self.loan_type = loan_type
         self.amount = amount
         self._num_of_months = num_of_months
@@ -96,7 +96,7 @@ class Loan:
     def get_volatility(self):
         vii = 0 if self.loan_type == LoanType.FIXED.name else PrimeInterestVAR.value_at_risk(self.num_of_months())
         vicpi = 0 if self.cpi == 0 else CPIVAR.value_at_risk(self.num_of_months())
-        return vii + vicpi
+        return (vii+vicpi)*100
 
     def set_period(self, num_of_months):
         assert num_of_months >= 0
