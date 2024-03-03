@@ -265,7 +265,7 @@ def bars_summary_section(mortgage_before, mortgage_after):
         }, color=['#eb7734'])
 
 
-def summary_section(mortgage_before, mortgage_after):
+def summary_section(mortgage_before: Mortgage, mortgage_after:Mortgage):
     # Use the last item in the dataframes for "Interest Payment"
 
     mortgages = [mortgage_before, mortgage_after]
@@ -275,7 +275,7 @@ def summary_section(mortgage_before, mortgage_after):
         "Period (Years)": [np.round(mortgage.num_of_months(),2) for mortgage in mortgages],
         "Interest": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
         "Indexation": [np.round(mortgage.total_inflation_payments()) for mortgage in mortgages],
-        "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
+        "Cost": [np.round(mortgage.cost()) for mortgage in mortgages],
         "Cost per Currency": [np.round(mortgage.cost_per_currency(), 2) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
@@ -292,7 +292,7 @@ def summary_section(mortgage_before, mortgage_after):
     # Append the new row to the original DataFrame
     summary_df = pd.concat([summary_df, pd.DataFrame([new_row], columns=numeric_columns.columns)], ignore_index=True)
     extra = mortgage_before.loan_amount() - mortgage_after.loan_amount() # reduce the loan amount from the cost savings
-    summary_df.at[summary_df.index[-1], 'Cost'] -=  extra
+    # summary_df.at[summary_df.index[-1], 'Cost'] -= extra
     summary_df.at[summary_df.index[-1], 'Name'] = 'Savings'
     savings_row = summary_df.iloc[-1]
     before_row = summary_df.iloc[0]
@@ -373,7 +373,7 @@ def invested_savings_options_terminology():
 def get_example_mortgage():
     return pd.DataFrame([[158334, 180, 5.149, LoanType.FIXED.name, 0, False],
                          [158333, 180, 5.55, LoanType.PRIME.name, 0, False],
-                         [158333, 180, 3.06, LoanType.PRIME.ARM.name, 0, True]],
+                         [158333, 180, 3.06, LoanType.PRIME.VARIABLE.name, 0, True]],
                         columns=list(Mortgage.columns_types().keys())).astype(
         Mortgage.columns_types())
 

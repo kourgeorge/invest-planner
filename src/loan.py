@@ -8,7 +8,7 @@ from enum import Enum
 
 class LoanType(Enum):
     FIXED = 'Kvoa'
-    ARM = 'Mishtana'
+    VARIABLE = 'Mishtana'
     PRIME = 'Prime'
 
 

@@ -142,7 +142,7 @@ def summary_section(mortgages):
         "Name": [mortgage.name for mortgage in mortgages],
         "Amount": [np.round(mortgage.loan_amount()) for mortgage in mortgages],
         "Period (Years)": [np.round(mortgage.num_of_months()/12,2) for mortgage in mortgages],
-        "Interest": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
+        "Interest Payments": [np.round(mortgage.total_interest_payments()) for mortgage in mortgages],
         "Cost": [np.round(mortgage.total_payments()) for mortgage in mortgages],
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
@@ -162,7 +162,7 @@ def summary_section(mortgages):
                                                  mortgages]
 
         # Melt the DataFrame to make it suitable for a stacked bar chart
-        melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest", "Indexation"])
+        melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Payments", "Indexation"])
         risk_chart = alt.Chart(melted_df).mark_bar().encode(
             x=alt.X('sum(value)', axis=alt.Axis(title=None)),
             y=alt.Y('Name', sort='x', axis=alt.Axis(title=None)),

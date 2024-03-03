@@ -7,7 +7,7 @@ from loan import Loan, LoanType
 
 
 def header():
-    st.image('resources/banner.png', use_column_width=True)
+    st.image('resources/banner_small.png', use_column_width=True)
 
 
 def footer():

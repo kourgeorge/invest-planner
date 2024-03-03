@@ -209,6 +209,9 @@ class Mortgage:
         else:
             return self.amortization_schedule['Monthly Payment'].sum()
 
+    def cost(self):
+        return self.total_payments() - self.loan_amount()
+
     def remaining_balance(self, months):
         return self.amortization_schedule.loc[months, 'Remaining Balance'] if months < self.num_of_months() else 0
 
@@ -334,7 +337,7 @@ class Mortgage:
         relevant_loans = [loan for loan in recycled_mortgage.loans if
                           loan.loan_amount() > 0 and loan.num_of_months() > 1]
         while not converged and len(relevant_loans) > 0 and remainder > 0:
-            cost_per_currency = [loan.cost_per_currency() for loan in relevant_loans if loan.loan_amount() > 0]
+            cost_per_currency = [loan.get_irr() for loan in relevant_loans if loan.loan_amount() > 0]
             target_loan_index = cost_per_currency.index(max(cost_per_currency))
             target_loan = relevant_loans[target_loan_index]
             #the payback is the minimum between the remaider and the ...

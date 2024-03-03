@@ -11,8 +11,8 @@ from pages.Planit_Compare import mortgage_comparison_report_details
 def compare_with_banks(amount, years):
     dict= {'Fixed Non-Linked': (LoanType.FIXED, False),
            'Prime': (LoanType.PRIME, False),
-           'Variable Non-Linked': (LoanType.ARM, False),
-           'Variable Index-Linked': (LoanType.ARM, True),
+           'Variable Non-Linked': (LoanType.VARIABLE, False),
+           'Variable Index-Linked': (LoanType.VARIABLE, True),
            'Fixed Index-Linked': (LoanType.FIXED, True)
            }
 
@@ -58,8 +58,11 @@ if __name__ == '__main__':
     # Calculate the weighted interest rate for each row
     banks_monthly_data['Weighted Interest Rate'] = banks_monthly_data['Interest Rate'] * (
                 banks_monthly_data['Route Composition'] / 100)
+
+
+    st.divider()
+    st.header("Comparing Banks Mortgage Information according to BanK of Israel: January 2024")
     col1, col2 = st.columns(2,gap='large')
-    st.subheader("Comparing Bank Data")
     with col1:
         chart = alt.Chart(banks_monthly_data).mark_bar().encode(
             y=alt.Y('Bank:N', title='Bank'),
@@ -88,18 +91,20 @@ if __name__ == '__main__':
         )
         st.altair_chart(chart2)
 
-    chart_interest = alt.Chart(banks_monthly_data).mark_bar().encode(
-        x=alt.X('Bank:N', title='Bank'),
-        y=alt.Y('Interest Rate:Q', title='Interest Rate'),
-        color=alt.Color('Bank:N', title=''),
-        column=alt.Column('Interest Type:N', title='', )
-    ).properties(
-        width=100,
-        height=400,
-        title='Interest Rate for Each Loan Type Across Banks'
-    )
+    cols = st.columns([1,2,1])
+    with cols[1]:
+        chart_interest = alt.Chart(banks_monthly_data).mark_bar().encode(
+            x=alt.X('Bank:N', title=''),
+            y=alt.Y('Interest Rate:Q', title='Interest Rate'),
+            color=alt.Color('Bank:N', title=''),
+            column=alt.Column('Interest Type:N', title='', )
+        ).properties(
+            width=100,
+            height=400,
+            title='Interest Rate for Each Loan Type Across Banks'
+        )
 
-    st.altair_chart(chart_interest)
+        st.altair_chart(chart_interest)
 
     footer()
 
