@@ -2,114 +2,190 @@ import pandas as pd
 from constants import *
 from loan import Loan
 from mortgage import Mortgage
+import numpy_financial as npf
 
 
 class Investment:
+
+    def __init__(self, initial_fund, investment_years, name):
+        self.initial_fund = initial_fund
+        self.investment_years = investment_years
+        self.name = name
+
+    def get_initial_investment(self):
+        return self.initial_fund
+
+    def generate_amortization_schedule(self, investment_years) -> pd.DataFrame:
+        pass
+
+    def set_investment_years(self, new_investment_years):
+        self.investment_years = new_investment_years
+        self.amortization_schedule = self.generate_amortization_schedule(new_investment_years)
+
+    def total_income_payments(self, month=None):
+        if month is not None:
+            return self.amortization_schedule.loc[:month, 'Income'].sum()
+        else:
+            return self.amortization_schedule['Income'].sum()
+
+    def total_assets(self, month=None):
+        if month is not None:
+            return round(self.amortization_schedule.loc[month, 'Total Assets'])
+        else:
+            return round(self.amortization_schedule['Total Assets'].iloc[-1])
+
+    def total_liabilities(self, month=None):
+        if month is not None:
+            return round(self.amortization_schedule.loc[month, 'Total Liabilities'])
+        else:
+            return round(self.amortization_schedule['Total Liabilities'].iloc[-1])
+
+    def total_expenses_payments(self, month=None):
+        if month is not None:
+            return self.amortization_schedule.loc[:month, 'Expenses'].sum()
+        else:
+            return self.amortization_schedule['Expenses'].sum()
+
+    def total_revenue(self, month=None):
+        if month is not None:
+            return self.amortization_schedule.loc[month, 'Total Revenue']
+        else:
+            return self.amortization_schedule['Total Revenue'].iloc[-1]
+
+    def net_worth(self, month=None):
+        if month is not None:
+            return self.amortization_schedule.loc[month, 'Total Assets'] - \
+                   self.amortization_schedule.loc[month, 'Total Liabilities']
+        else:
+            return self.amortization_schedule['Total Assets'].iloc[-1] - \
+                   self.amortization_schedule['Total Liabilities'].iloc[-1]
+
+    def highest_cash_dept(self):
+        """TODO: fix"""
+        return (self.amortization_schedule.loc[1:, 'Income'] - self.amortization_schedule.loc[1:, 'Expenses']).min()
+
+    def expected_tax(self):
+        return self.amortization_schedule['Total Revenue'].iloc[-1] - self.amortization_schedule['Net Revenue'].iloc[-1]
+
+    def get_investment_years(self):
+        return self.investment_years
+
+    def get_irr(self):
+        pass
+
     @staticmethod
     def get_yearly_amortization(amortization_schedule):
         yearly_amortization = amortization_schedule.groupby(amortization_schedule.index // 12).agg({
             'Month': 'last',
             'Total Assets': 'last',
+            'Total Liabilities': 'last',
+            'Income': 'sum',
+            'Expenses': 'sum',
             'Monthly Extra': 'sum',
-            'Monthly Income': 'sum',
-            'Total Expenses': 'last',
             'Total Revenue': 'last',
             'Net Revenue': 'last',
-        }).astype({'Month': int, 'Total Assets': int, 'Total Expenses': int, 'Total Revenue': int,
-                   'Net Revenue': int, 'Monthly Income': int})
+        }).astype({'Month': int, 'Total Assets': int, 'Expenses': int, 'Total Revenue': int,
+                   'Net Revenue': int, 'Income': int})
 
         return yearly_amortization
 
-    def generate_amortization_schedule(self, investment_num_years):
-        pass
-
 
 class StocksMarketInvestment(Investment):
-    def __init__(self, initial_fund, yearly_return=StocksMarketYearlyReturn, yearly_fee_percent=StocksMarketFeesPercentage,
-                 gain_tax=TaxGainPercentage, monthly_extra=0,
+    def __init__(self, initial_fund, investment_years, yearly_return=StocksMarketYearlyReturn,
+                 yearly_fee_percent=StocksMarketFeesPercentage, gain_tax=TaxGainPercentage, monthly_extra=0,
                  name='Stock Market'):
-        self.name = name
-        self.initial_fund = initial_fund
+        super().__init__(initial_fund=initial_fund, investment_years=investment_years, name=name)
         self.yearly_return = yearly_return
         self.gain_tax = gain_tax
         self.yearly_fee_percent = yearly_fee_percent
         self.monthly_extra = monthly_extra
+        self.amortization_schedule = self.generate_amortization_schedule(investment_years)
 
-    def generate_amortization_schedule(self, investment_num_years):
+    def generate_amortization_schedule(self, investment_years):
         amortization_schedule = []
         current_asset_price = self.initial_fund
         monthly_return = (1 + self.yearly_return / 100) ** (1 / 12) - 1
-
         monthly_fee_percent = (1 + self.yearly_fee_percent / 100) ** (1 / 12) - 1
-        investment_num_months = int(investment_num_years * 12)
+        investment_num_months = int(investment_years * 12)
 
-        total_expenses = 0
         for month in range(1, investment_num_months + 1):
             previous_asset_price = current_asset_price
             current_asset_price = previous_asset_price * (1 + monthly_return) + self.monthly_extra
             interest = previous_asset_price * monthly_return
-            monthly_expenses = monthly_fee_percent * current_asset_price
-            total_expenses += monthly_expenses
-            current_asset_price -= monthly_expenses
+            monthly_expenses = monthly_fee_percent * current_asset_price + self.monthly_extra
+            current_asset_price -= monthly_fee_percent * current_asset_price
             total_revenue = current_asset_price - self.initial_fund - month * self.monthly_extra
-            net_revenue = total_revenue if total_revenue <= 0 else (1 - (self.gain_tax / 100)) * total_revenue
+            taxes = self.gain_tax / 100 * total_revenue
+            net_revenue = total_revenue if total_revenue <= 0 else total_revenue-taxes
             amortization_schedule.append({
                 'Month': month,
-                'Monthly Extra': self.monthly_extra,
-                'Monthly Income': interest,
+                'Monthly Extra':self.monthly_extra,
+                'Income': 0,
+                'Expenses': monthly_expenses,
                 'Total Assets': current_asset_price,
-                'Total Expenses': total_expenses,
+                'Total Liabilities': 0,
                 'Total Revenue': total_revenue,
                 'Net Revenue': net_revenue
             })
 
         return pd.DataFrame(amortization_schedule)
 
+    def get_irr(self):
+        annual_amortization = Investment.get_yearly_amortization(self.amortization_schedule)
+        taxes = self.amortization_schedule['Net Revenue'].iloc[-1] - self.amortization_schedule['Total Revenue'].iloc[-1]
+        cashflow = [-self.initial_fund] + [0]*len(annual_amortization) + [self.total_assets() - taxes]
+        return npf.irr(cashflow) * 100
+
 
 class RealEstateInvestment(Investment):
-    def __init__(self, price, initial_fund, mortgage: Mortgage, appreciation_rate,
-                 monthly_rental_income=0, buying_costs=0, selling_tax=TaxGainPercentage, name='New Real Estate'):
-        self.name = name
+    def __init__(self, price, initial_fund, mortgage: Mortgage, appreciation_rate, housing_index, investment_years,
+                 construction_period=0, monthly_rental_income=0, buying_costs=0, selling_tax=TaxGainPercentage,
+                 name='Real Estate'):
+        super().__init__(initial_fund=initial_fund, investment_years=investment_years, name=name)
+
         self.price = price
-        self.initial_fund = initial_fund
+        self.construction_period = construction_period
         self.appreciation_rate = appreciation_rate
+        self.housing_index = housing_index
         self.mortgage: Mortgage = mortgage
         self.monthly_rental_income = monthly_rental_income
         self.buying_costs = buying_costs
         self.selling_tax = selling_tax
 
-    def generate_amortization_schedule(self, investment_num_years):
+        self.amortization_schedule = self.generate_amortization_schedule(investment_years)
 
+    def get_initial_investment(self):
+        return self.initial_fund + self.buying_costs
+
+    def generate_amortization_schedule(self, investment_years):
         amortization_schedule = []
         total_rent_income = 0
         current_asset_price = self.price
         monthly_appreciation_rate = (1 + self.appreciation_rate / 100) ** (1 / 12) - 1
-        investment_num_months = int(investment_num_years * 12)
+        monthly_housing_index = (1 + self.housing_index / 100) ** (1 / 12) - 1
+        investment_num_months = int(investment_years * 12)
 
         for month in range(1, investment_num_months + 1):
             previous_asset_value = current_asset_price
             current_asset_price = current_asset_price * (1 + monthly_appreciation_rate)
-            monthly_rental_income = self.monthly_rental_income
+            monthly_rental_income = 0 if month < self.construction_period * 12 else self.monthly_rental_income * (
+                        1 + monthly_housing_index * month)
             total_rent_income += monthly_rental_income
-            total_expenses = self.buying_costs + self.mortgage.total_payments(month) + \
-                             self.mortgage.remaining_balance(month)
-            total_income = current_asset_price + total_rent_income
-            total_revenue = total_income - total_expenses - self.initial_fund
+            expenses = self.mortgage.monthly_payment(month)
+            total_expenses = self.mortgage.total_payments(month) + self.initial_fund + self.buying_costs
+            total_liabilities = self.mortgage.remaining_balance(month)
+            total_revenue = current_asset_price - total_liabilities + total_rent_income - total_expenses
             net_revenue = total_revenue if total_revenue <= 0 else (1 - (self.selling_tax / 100)) * total_revenue
-
-            monthly_interest = self.mortgage.amortization_schedule.loc[
-                month, "Interest Payment"] if month < self.mortgage.num_of_months() else 0
             amortization_schedule.append({
                 'Month': month,
-                'Monthly Extra': self.mortgage.total_payments(0) - self.monthly_rental_income,
-                'Monthly Income': monthly_rental_income + (
-                        current_asset_price - previous_asset_value) - monthly_interest,
-                'Total Assets': total_income,
-                'Total Expenses': total_expenses,
+                'Income': monthly_rental_income,
+                'Expenses': expenses,
+                'Monthly Extra': expenses,
+                'Total Assets': current_asset_price,
+                'Total Liabilities': total_liabilities,
                 'Total Revenue': total_revenue,
                 'Net Revenue': net_revenue
             })
-
         return pd.DataFrame(amortization_schedule)
 
     def get_investment_info(self, investment_num_years):
@@ -151,81 +227,88 @@ class RealEstateInvestment(Investment):
         for key, value in self.get_investment_info(investment_num_years).items():
             print("{}: {:,.0f}".format(key.replace("_", " ").title(), value))
 
-    @staticmethod
-    def get_yearly_amortization(amortization_schedule):
-        yearly_amortization = amortization_schedule.groupby(amortization_schedule.index // 12).agg({
-            'Month': 'last',
-            'Total Assets': 'last',
-            'Total Expenses': 'last',
-            'Total Revenue': 'last',
-            'Net Revenue': 'last',
-        }).astype({'Month': int, 'Total Assets': int, 'Total Expenses': int, 'Total Revenue': int,
-                   'Net Revenue': int})
+    def expected_tax(self, month=None):
+        return self.amortization_schedule['Total Revenue'].iloc[-1] - self.amortization_schedule['Net Revenue'].iloc[
+            -1] + self.buying_costs
 
-        return yearly_amortization
+    def get_irr(self):
+        annual_amortization = Investment.get_yearly_amortization(self.amortization_schedule)
+        cashflow = [-self.buying_costs - self.initial_fund]+list(
+            annual_amortization['Income'] - annual_amortization['Expenses']) + [
+                           self.net_worth()]
+        return npf.irr(cashflow) * 100
 
     @staticmethod
-    def quick_calculation(price, down_payment, interest_rate, appreciation_rate,
-                          mortgage_num_years, monthly_rental_income,
-                          buying_costs=0):
+    def quick_calculation(price, down_payment, interest_rate, appreciation_rate, investment_years,
+                          mortgage_num_years, housing_index, monthly_rental_income, name, building_period=0, grace=0,
+                          buying_costs=0, ):
         loan = Loan(amount=price - down_payment, interest_rate=interest_rate,
-                    num_of_months=mortgage_num_years * 12)
-        investment = RealEstateInvestment(price=price, initial_fund=down_payment, mortgage=Mortgage([loan]),
+                    num_of_months=mortgage_num_years * 12, grace_period=grace*12)
+        investment = RealEstateInvestment(price=price, initial_fund=down_payment,
+                                          mortgage=Mortgage([loan]),
+                                          investment_years=investment_years,
+                                          housing_index=housing_index,
                                           appreciation_rate=appreciation_rate,
-                                          monthly_rental_income=monthly_rental_income, buying_costs=buying_costs)
+                                          construction_period=building_period,
+                                          monthly_rental_income=monthly_rental_income,
+                                          buying_costs=buying_costs,
+                                          name=name)
 
         return investment
 
 
 class MortgageRecycleInvestment(Investment):
-    def __init__(self, initial_fund, mortgage: Mortgage, investment_yearly_return=StocksMarketYearlyReturn,
+    def __init__(self, initial_fund, mortgage: Mortgage, investment_years,
+                 investment_yearly_return=StocksMarketYearlyReturn,
                  stocks_yearly_fee_percent=StocksMarketFeesPercentage, name='Mortgage Recycle',
                  gain_tax=TaxGainPercentage, change='payment'):
-        self.name = name
-        self.initial_fund = initial_fund
+        super().__init__(initial_fund=initial_fund, investment_years=investment_years, name=name)
+
         self.old_mortgage = mortgage
         self.change = change
-        self.recycled_mortgage = Mortgage.recycle_mortgage(self.old_mortgage, extra_payment=self.initial_fund,
-                                                           change=change)
-
+        self.recycled_mortgage = Mortgage.recycle_mortgage(self.old_mortgage, extra_payment=self.initial_fund, change=change)
         self.investment_yearly_return = investment_yearly_return
         self.yearly_fee_percent = stocks_yearly_fee_percent
         self.gain_tax = gain_tax
 
+        self.amortization_schedule = self.generate_amortization_schedule(investment_years)
+
     def get_recycled_mortgage(self):
         return self.recycled_mortgage
 
-    def generate_amortization_schedule(self, investment_num_years):
+    def generate_amortization_schedule(self, investment_years):
         diff_amortization_schedule = Mortgage.amortization_diff(self.old_mortgage, self.recycled_mortgage)
 
         current_asset_price = 0
         amortization_schedule = []
         monthly_return = (1 + self.investment_yearly_return / 100) ** (1 / 12) - 1
         monthly_fee_percent = (1 + self.yearly_fee_percent / 100) ** (1 / 12) - 1
-        investment_num_months = int(investment_num_years * 12)
+        investment_num_months = int(investment_years * 12)
 
         diff_mortgage_length = len(diff_amortization_schedule)
-        total_expenses = 0
-        total_savings = 0
         for month in range(1, investment_num_months + 1):
             previous_asset_price = current_asset_price
-            monthly_saving = 0 if month > diff_mortgage_length else diff_amortization_schedule.at[
-                month - 1, 'Monthly Payment']
-            current_asset_price = previous_asset_price * (1 + monthly_return) + monthly_saving
-            total_savings += monthly_saving
+            monthly_mortgage_saving = 0 if month > diff_mortgage_length else diff_amortization_schedule.at[
+                month - 1, 'Interest Payment'] + diff_amortization_schedule.at[month - 1, 'Inflation Payment']
+            current_asset_price = previous_asset_price * (1 + monthly_return) + monthly_mortgage_saving
             investment_interest = previous_asset_price * monthly_return
             monthly_expenses = monthly_fee_percent * current_asset_price
-            total_expenses += monthly_expenses
             current_asset_price -= monthly_expenses
             total_revenue = current_asset_price
             net_revenue = total_revenue if total_revenue <= 0 else (1 - (self.gain_tax / 100)) * total_revenue
             amortization_schedule.append({
                 'Month': month,
-                'Monthly Extra': monthly_saving,
-                'Monthly Income': investment_interest,
+                'Monthly Extra': monthly_mortgage_saving,
+                'Income':  monthly_mortgage_saving + investment_interest,
+                'Expenses': monthly_expenses,
                 'Total Assets': current_asset_price,
-                'Total Expenses': total_expenses,
+                'Total Liabilities': 0,
                 'Total Revenue': total_revenue,
                 'Net Revenue': net_revenue
             })
         return pd.DataFrame(amortization_schedule)
+
+    def get_irr(self):
+        return npf.irr([-self.initial_fund] +
+            list(
+                self.amortization_schedule['Income'] - self.amortization_schedule['Expenses']) + [self.initial_fund]) * 12 * 100
