@@ -59,15 +59,16 @@ if __name__ == '__main__':
     banks_monthly_data['Weighted Interest Rate'] = banks_monthly_data['Interest Rate'] * (
                 banks_monthly_data['Route Composition'] / 100)
 
-
     st.divider()
+    interest_color_scheme = ['#BFD9FF', '#7AB6E0', '#B6E07A', '#FFB6B6', '#E07A7A']
+
     st.header("Comparing Banks Mortgage Information according to BanK of Israel: January 2024")
     col1, col2 = st.columns(2,gap='large')
     with col1:
         chart = alt.Chart(banks_monthly_data).mark_bar().encode(
             y=alt.Y('Bank:N', title='Bank'),
             x=alt.X('sum(Route Composition):Q', stack='normalize', title='Route Composition'),
-            color=alt.Color('Interest Type:N', title='Interest Type'),
+            color=alt.Color('Interest Type:N', title='Interest Type', scale=alt.Scale(range=interest_color_scheme)),
             order=alt.Order('Interest Type', sort='ascending')
         ).properties(
             width=600,
@@ -81,7 +82,7 @@ if __name__ == '__main__':
         chart2 = alt.Chart(banks_monthly_data).mark_bar().encode(
             y=alt.Y('Bank:N', title='Bank'),
             x=alt.X('sum(Weighted Interest Rate):Q', title='Weighted Interest'),
-            color=alt.Color('Interest Type:N', title='Interest Type'),
+            color=alt.Color('Interest Type:N', title='Interest Type', scale=alt.Scale(range=interest_color_scheme)),
             order=alt.Order('Interest Type', sort='ascending'),
             tooltip = ['Interest Type', 'Route Composition', 'Interest Rate']
         ).properties(
@@ -91,12 +92,14 @@ if __name__ == '__main__':
         )
         st.altair_chart(chart2)
 
+    bank_colors = ['#84AC35', '	#FFD700', '#ea1a23', '#c58e2a', '#4484f6', '#048148', '#eb9834']
+
     cols = st.columns([1,2,1])
     with cols[1]:
         chart_interest = alt.Chart(banks_monthly_data).mark_bar().encode(
             x=alt.X('Bank:N', title=''),
             y=alt.Y('Interest Rate:Q', title='Interest Rate'),
-            color=alt.Color('Bank:N', title=''),
+            color=alt.Color('Bank:N', title='',scale=alt.Scale(range=bank_colors)),
             column=alt.Column('Interest Type:N', title='', )
         ).properties(
             width=100,
