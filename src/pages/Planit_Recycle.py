@@ -2,7 +2,8 @@ import numpy as np
 import streamlit as st
 import pandas as pd
 from common_components import footer, header, parameters_bar, display_amortization_pane, display_table_with_total_row, \
-    recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int, mortgage_editor
+    recycle_strategy_help, plot_annual_amortization_monthly_line, convert_string_to_int, mortgage_editor, \
+    load_mortgage_csv
 from investments import MortgageRecycleInvestment, Investment, StocksMarketInvestment
 from loan import Loan, LoanType
 from mortgage import Mortgage
@@ -121,8 +122,8 @@ def saving_investment(mortgage: Mortgage, extra_payment: int, monthly_extra:int=
                                                              change='period',
                                                              stocks_yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
                                                              gain_tax=st.session_state.TaxGainPercentage,
-                                                             name="Mortgage Recycle Period change").generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
+                                                             name="Mortgage Recycle Period change",
+                                                             investment_years=mortgage.num_of_months() // 12 + 10).amortization_schedule
 
     amortization_schedule_payment = MortgageRecycleInvestment(initial_fund=extra_payment,
                                                               mortgage=mortgage,
@@ -130,14 +131,14 @@ def saving_investment(mortgage: Mortgage, extra_payment: int, monthly_extra:int=
                                                               change='payment',
                                                               stocks_yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
                                                               gain_tax=st.session_state.TaxGainPercentage,
-                                                              name="Mortgage Recycle payment change").generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
+                                                              name="Mortgage Recycle payment change",
+                                                              investment_years=mortgage.num_of_months() // 12 + 10).amortization_schedule
 
     stockmarket_schedule_payment = StocksMarketInvestment(initial_fund=extra_payment,
                                                           yearly_return=st.session_state.StocksMarketYearlyReturn,
                                                           yearly_fee_percent=st.session_state.StocksMarketFeesPercentage,
-                                                          gain_tax=st.session_state.TaxGainPercentage).generate_amortization_schedule(
-        mortgage.num_of_months() // 12 + 10)
+                                                          gain_tax=st.session_state.TaxGainPercentage,
+                                                          investment_years=mortgage.num_of_months() // 12 + 10).amortization_schedule
 
     yearly_amortization_period = Investment.get_yearly_amortization(amortization_schedule_period)
     yearly_amortization_payment = Investment.get_yearly_amortization(amortization_schedule_payment)
@@ -343,20 +344,6 @@ def summary_section(mortgage_before: Mortgage, mortgage_after:Mortgage):
         st.altair_chart(risk_chart, use_container_width=True)
 
 
-def load_mortgage_csv():
-    st.session_state.files = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
-                                              label_visibility="hidden", type=['csv', 'txt'])
-
-    if st.session_state.files is not None:
-        st.session_state.mortgages_df[0] = pd.read_csv(st.session_state.files,
-                                                    dtype={'amount': float, 'num_of_months': int,
-                                                           'interest_rate': float,
-                                                           'loan_type': str,
-                                                           'grace_period': int, 'cpi': str})
-
-        print("Mortgage data loaded successfully!")
-
-
 def invested_savings_options_terminology():
     with st.expander('Terminology', expanded=False):
         data = {
@@ -369,6 +356,7 @@ def invested_savings_options_terminology():
         }
         df = pd.DataFrame(data)
         st.table(df.reset_index(drop=True))
+
 
 def get_example_mortgage():
     return pd.DataFrame([[158334, 180, 5.149, LoanType.FIXED.name, 0, False],
