@@ -11,7 +11,7 @@ def header():
 
 
 def footer():
-    st.write("© All rights reserved to George Kour. 2024 (v0.8)")
+    st.write("© All rights reserved to George Kour. 2024 (v0.9)")
     st.write("Disclaimer: The use of this application is at your own risk. "
              "The information and results provided on this application are for informational purposes only and do not constitute financial advice or consultation. "
              "Users are advised to independently verify any data and consult with qualified professionals for personalized financial guidance. "
@@ -32,6 +32,43 @@ def parameters_bar():
                                                                           value=constants.StocksMarketFeesPercentage, help='Annual Stocks Market Fees %')
         with cols[3]:
             st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
+
+
+def investment_parameters_bar():
+    with st.expander("Parameters", expanded=False):
+        cols = st.columns(7)
+        with cols[0]:
+            st.session_state.CPI = st.number_input("CPI", value=constants.CPI, help="Expected Customer Price Index")
+        with cols[1]:
+            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Return %",
+                                                                        value=constants.StocksMarketYearlyReturn,
+                                                                        help='Expected Annual Stocks Market Returns')
+        with cols[2]:
+            st.session_state.StocksMarketFeesPercentage = st.number_input("Trading Fees %",
+                                                                          value=constants.StocksMarketFeesPercentage,
+                                                                          help='Annual Stocks Market Fees %')
+        with cols[3]:
+            st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
+        with cols[4]:
+            st.session_state.RealEstateAppreciations = st.number_input("RE Appreciation %", value=constants.RealEstateYearlyAppreciation)
+        with cols[5]:
+            st.session_state.MaintenanceRentalRatio = st.number_input("Adjusted Rental %", value=constants.MaintenanceRentalRatio)
+        with cols[6]:
+            st.session_state.TaxBuyingPercentage = st.number_input("Property Buying Tax %", value=constants.TaxBuyingPercentage)
+
+
+def load_mortgage_csv():
+    st.session_state.files = st.file_uploader("Load a Mortgage Data", accept_multiple_files=False,
+                                              label_visibility="hidden", type=['csv', 'txt'])
+
+    if st.session_state.files is not None:
+        st.session_state.mortgages_df[0] = pd.read_csv(st.session_state.files,
+                                                    dtype={'amount': float, 'num_of_months': int,
+                                                           'interest_rate': float,
+                                                           'loan_type': str,
+                                                           'grace_period': int, 'cpi': str})
+
+        print("Mortgage data loaded successfully!")
 
 
 def display_amortization_table(mortgage, amortization_type):
