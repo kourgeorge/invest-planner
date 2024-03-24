@@ -1,13 +1,11 @@
 import numpy as np
 import pandas as pd
 import streamlit as st
-from common_components import header, footer, load_mortgage_csv, investment_parameters_bar, mortgage_editor, \
-    display_amortization_table
+from common_components import header, footer, load_mortgage_csv, investment_parameters_bar, mortgage_editor
 from investments import RealEstateInvestment, MortgageRecycleInvestment, StocksMarketInvestment, Investment
 from mortgage import Mortgage
 from pages.Planit_Recycle import get_example_mortgage
 from typing import List
-import altair as alt
 
 
 def main_compare_investments(investments: List[Investment]):
@@ -21,7 +19,7 @@ def main_compare_investments(investments: List[Investment]):
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.subheader('Avg. Monthly Cash Flow')
+        st.subheader('Monthly Cash Flow')
         st.line_chart({f"{investments[i].name}": (yearly_amortization['Income']-yearly_amortization['Expenses']) // 12 for i, yearly_amortization in
                       enumerate(yearly_amortizations)})
 
@@ -29,7 +27,6 @@ def main_compare_investments(investments: List[Investment]):
         st.subheader('Monthly Income', help="In the recycle, we assume that payment amount saved due to the recycle, will become an income to which will be invested in the stock market.")
         st.line_chart({f"{investments[i].name}": yearly_amortization['Income'] // 12 for i, yearly_amortization in
                        enumerate(yearly_amortizations)})
-
 
     with col3:
         st.subheader('Monthly Expenses')
@@ -70,7 +67,7 @@ def real_estate_tab(investment_years):
     with cols[3]:
         average_mortgage_interest_rate = st.number_input(label='Average Mortgage Interest', value=5.3)
     with cols[4]:
-        mortgage_period = st.number_input(label='Mortgage Period', value=15)
+        mortgage_period = st.number_input(label='Mortgage Period (Y)', value=15)
 
     buying_costs = st.session_state.TaxBuyingPercentage / 100 * new_apartment_price
 
@@ -88,18 +85,20 @@ def real_estate_tab(investment_years):
 
 
 def preconstruction_real_estate_tab(investment_years):
-    cols = st.columns(6)
+    cols = st.columns(7)
     with cols[0]:
-        new_apartment_price = st.number_input(label='New Apartment Price', value=2100000)
+        new_apartment_price = st.number_input(label='New Apartment Price', value=2100000, step=50000)
     with cols[1]:
-        construction_period = st.number_input(label='Construction Period', value=4)
+        construction_period = st.number_input(label='Construction Period (Y)', value=4.0, step=0.5)
     with cols[2]:
-        monthly_rental = st.number_input(label='Monthly Rental', value=7000)
+        monthly_rental = st.number_input(label='Monthly Rental', value=7000, step=100)
     with cols[3]:
         average_mortgage_interest_rate = st.number_input(label='Average Mortgage Interest', value=5.3,
-                                                         key='new_avg_motgage_interest')
+                                                         key='new_avg_motgage_interest', step=0.2)
     with cols[4]:
-        mortgage_period = st.number_input(label='Mortgage Period', value=25, key='new_mortgage_period')
+        mortgage_period = st.number_input(label='Mortgage Period (Y)', value=25, key='new_mortgage_period')
+    with cols[5]:
+        grace_period = st.number_input(label='Grace Period (Y)', value=3.5, step=0.5)
 
     buying_costs = st.session_state.TaxBuyingPercentage / 100 * new_apartment_price
 
@@ -108,7 +107,7 @@ def preconstruction_real_estate_tab(investment_years):
                                                                          investment_years=investment_years,
                                                                          interest_rate=average_mortgage_interest_rate,
                                                                          mortgage_num_years=mortgage_period,
-                                                                         grace=construction_period,
+                                                                         grace=grace_period,
                                                                          housing_index = st.session_state.CPI,
                                                                          appreciation_rate=st.session_state.RealEstateAppreciations,
                                                                          monthly_rental_income=st.session_state.MaintenanceRentalRatio * monthly_rental,

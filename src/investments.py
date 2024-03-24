@@ -241,9 +241,9 @@ class RealEstateInvestment(Investment):
     @staticmethod
     def quick_calculation(price, down_payment, interest_rate, appreciation_rate, investment_years,
                           mortgage_num_years, housing_index, monthly_rental_income, name, building_period=0, grace=0,
-                          buying_costs=0, ):
+                          buying_costs=0):
         loan = Loan(amount=price - down_payment, interest_rate=interest_rate,
-                    num_of_months=mortgage_num_years * 12, grace_period=grace*12)
+                    num_of_months=mortgage_num_years * 12, grace_period=int(grace*12))
         investment = RealEstateInvestment(price=price, initial_fund=down_payment,
                                           mortgage=Mortgage([loan]),
                                           investment_years=investment_years,
