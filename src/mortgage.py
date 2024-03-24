@@ -197,6 +197,9 @@ class Mortgage:
     def interest_payment(self, month):
         return 0 if month >= self.num_of_months() else self.amortization_schedule.loc[month, 'Interest Payment']
 
+    def inflation_payment(self, month):
+        return 0 if month >= self.num_of_months() else self.amortization_schedule.loc[month, 'Inflation Payment']
+
     def total_principal_payments(self, months=None):
         if months is not None and months < self.num_of_months():
             return self.amortization_schedule.loc[:months, 'Principal Payment'].sum()
@@ -389,6 +392,7 @@ class Mortgage:
             # Initialize totals for the month
             total_principal_payment = 0
             total_interest_payment = 0
+            total_inflation_payment = 0
             total_monthly_payment = 0
             total_remaining_balance = 0
 
@@ -398,6 +402,8 @@ class Mortgage:
                                            mortgage_after.total_principal_payments(month - 1)
                 total_interest_payment += mortgage_before.interest_payment(month - 1) - \
                                           mortgage_after.interest_payment(month - 1)
+                total_inflation_payment += mortgage_before.inflation_payment(month - 1) - \
+                                          mortgage_after.inflation_payment(month - 1)
                 total_monthly_payment += mortgage_before.monthly_payment(month - 1) - \
                                          mortgage_after.monthly_payment(month - 1)
                 total_remaining_balance += mortgage_before.remaining_balance(month - 1) - \
@@ -408,6 +414,7 @@ class Mortgage:
                 'Monthly Payment': total_monthly_payment,
                 'Principal Payment': total_principal_payment,
                 'Interest Payment': total_interest_payment,
+                'Inflation Payment': total_interest_payment,
                 # 'Remaining Balance': total_remaining_balance
             })
 
