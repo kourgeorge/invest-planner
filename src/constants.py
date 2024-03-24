@@ -1,9 +1,9 @@
 P = 6
-CPI = 3.0
-RentalMonthlyRatio = 0.8
+CPI = 2.5
+MaintenanceRentalRatio = 0.85
 TaxGainPercentage = 25
 TaxBuyingPercentage = 8
-RealEstateYearlyAppreciation = 4
-StocksMarketYearlyReturn = 7.5
-StocksMarketFeesPercentage = 0.7
+RealEstateYearlyAppreciation = 5.0
+StocksMarketYearlyReturn = 7.0
+StocksMarketFeesPercentage = 0.8
 MortgageRecycleIterationAmount = 10000
