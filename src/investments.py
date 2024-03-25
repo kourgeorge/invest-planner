@@ -1,6 +1,6 @@
 import pandas as pd
 from constants import *
-from loan import Loan
+from loan import Loan, LoanType
 from mortgage import Mortgage
 import numpy_financial as npf
 
@@ -21,6 +21,7 @@ class Investment:
     def set_investment_years(self, new_investment_years):
         self.investment_years = new_investment_years
         self.amortization_schedule = self.generate_amortization_schedule(new_investment_years)
+        return self
 
     def total_income_payments(self, month=None):
         if month is not None:

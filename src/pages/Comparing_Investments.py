@@ -1,3 +1,5 @@
+from copy import copy
+
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -75,7 +77,7 @@ def real_estate_tab(investment_years):
                                                           investment_years=investment_years,
                                                           interest_rate=average_mortgage_interest_rate,
                                                           mortgage_num_years=mortgage_period,
-                                                          housing_index=st.session_state.CPI,
+                                                          cpi=st.session_state.CPI,
                                                           appreciation_rate=st.session_state.RealEstateAppreciations,
                                                           monthly_rental_income=st.session_state.MaintenanceRentalRatio * monthly_rental,
                                                           buying_costs=buying_costs+renovation_costs,
@@ -87,7 +89,7 @@ def real_estate_tab(investment_years):
 def preconstruction_real_estate_tab(investment_years):
     cols = st.columns(7)
     with cols[0]:
-        new_apartment_price = st.number_input(label='New Apartment Price', value=2100000, step=50000)
+        new_apartment_price = st.number_input(label='New Apartment Price', value=2000000, step=100000)
     with cols[1]:
         construction_period = st.number_input(label='Construction Period (Y)', value=4.0, step=0.5)
     with cols[2]:
@@ -108,7 +110,7 @@ def preconstruction_real_estate_tab(investment_years):
                                                                          interest_rate=average_mortgage_interest_rate,
                                                                          mortgage_num_years=mortgage_period,
                                                                          grace=grace_period,
-                                                                         housing_index = st.session_state.CPI,
+                                                                         cpi = st.session_state.CPI,
                                                                          appreciation_rate=st.session_state.RealEstateAppreciations,
                                                                          monthly_rental_income=st.session_state.MaintenanceRentalRatio * monthly_rental,
                                                                          buying_costs=buying_costs,
@@ -180,7 +182,9 @@ def summary_section(investments: List[Investment]):
             }
         )
 
-        st.bar_chart(chart_data, x='Name', y='IRR')
+        st.line_chart({f"{investment.name}": [copy(investment).set_investment_years(y).get_irr() for y in range(1,investment.get_investment_years()+5)] for investment in investments})
+
+        # st.bar_chart(chart_data, x='Name', y='IRR')
 
         # irr_chart = alt.Chart(chart_data).mark_bar().encode(
         #     x=alt.X('IRR', axis=alt.Axis(title=None)),
@@ -205,7 +209,7 @@ if __name__ == '__main__':
     with cols[1]:
         investment_years = st.number_input(label='Investment Years', value=25, step=1, min_value=2, max_value=50)
 
-    tabs = st.tabs(["Real Estate", "Mortgage Recycling", "New Real Estate"])
+    tabs = st.tabs(["Old Real Estate", "Mortgage Recycling", "Pre-Constructed Real Estate"])
     with tabs[0]:
         REinvestment = real_estate_tab(investment_years)
 
