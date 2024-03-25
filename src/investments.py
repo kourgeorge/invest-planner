@@ -241,14 +241,20 @@ class RealEstateInvestment(Investment):
 
     @staticmethod
     def quick_calculation(price, down_payment, interest_rate, appreciation_rate, investment_years,
-                          mortgage_num_years, housing_index, monthly_rental_income, name, building_period=0, grace=0,
-                          buying_costs=0):
-        loan = Loan(amount=price - down_payment, interest_rate=interest_rate,
-                    num_of_months=mortgage_num_years * 12, grace_period=int(grace*12))
+                          mortgage_num_years, cpi, monthly_rental_income, name, building_period=0, grace=0,
+                          buying_costs=0,):
+
+        loan_prime = Loan(amount=(price - down_payment)/3, interest_rate=interest_rate,
+                    num_of_months=mortgage_num_years * 12, grace_period=int(grace*12), loan_type=LoanType.PRIME, cpi=0)
+        loan_fixed = Loan(amount=(price - down_payment) / 3, interest_rate=interest_rate,
+             num_of_months=mortgage_num_years * 12, grace_period=int(grace * 12), loan_type=LoanType.FIXED, cpi=0)
+        loan_variable = Loan(amount=(price - down_payment) / 3, interest_rate=interest_rate-2,
+                          num_of_months=mortgage_num_years * 12, grace_period=int(grace * 12), loan_type=LoanType.VARIABLE, cpi=cpi)
+
         investment = RealEstateInvestment(price=price, initial_fund=down_payment,
-                                          mortgage=Mortgage([loan]),
+                                          mortgage=Mortgage([loan_prime, loan_fixed, loan_variable]),
                                           investment_years=investment_years,
-                                          housing_index=housing_index,
+                                          housing_index=cpi,
                                           appreciation_rate=appreciation_rate,
                                           construction_period=building_period,
                                           monthly_rental_income=monthly_rental_income,
