@@ -7,7 +7,7 @@ from loan import Loan, LoanType
 
 
 def header():
-    st.image('resources/banner_small.png', use_column_width=True)
+    st.image('resources/banner_small.png', use_container_width=True)
 
 
 def footer():
@@ -52,7 +52,7 @@ def investment_parameters_bar():
         with cols[4]:
             st.session_state.RealEstateAppreciations = st.number_input("RE Appreciation %", value=constants.RealEstateYearlyAppreciation)
         with cols[5]:
-            st.session_state.MaintenanceRentalRatio = st.number_input("Adjusted Rental %", value=constants.MaintenanceRentalRatio)
+            st.session_state.MaintenanceRentalRatio = st.number_input("Adjusted Rental Ratio", value=constants.MaintenanceRentalRatio, max_value=1.0, min_value=0.1)
         with cols[6]:
             st.session_state.TaxBuyingPercentage = st.number_input("Property Buying Tax %", value=constants.TaxBuyingPercentage)
 
