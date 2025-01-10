@@ -1,36 +1,36 @@
 Bank,Interest Rate,Route Composition,Interest Type
-Mizrahi Tefahot,5.09,28,Fixed Non-Linked
-Mizrahi Tefahot,6.30,7,Prime
-Mizrahi Tefahot,4.85,42,Variable Non-Linked
-Mizrahi Tefahot,3.37,12,Variable Index-Linked
-Mizrahi Tefahot,3.50,11,Fixed Index-Linked
-Leumi,4.91,26,Fixed Non-Linked
-Leumi,5.87,13,Prime
-Leumi,4.82,38,Variable Non-Linked
-Leumi,3.35,12,Variable Index-Linked
-Leumi,3.05,11,Fixed Index-Linked
-Hapoalim,4.90,25,Fixed Non-Linked
-Hapoalim,5.59,17,Prime
-Hapoalim,4.46,35,Variable Non-Linked
-Hapoalim,3.24,11,Variable Index-Linked
-Hapoalim,3.02,12,Fixed Index-Linked
-Discount,5.19,21,Fixed Non-Linked
-Discount,5.78,25,Prime
-Discount,4.92,19,Variable Non-Linked
-Discount,3.15,16,Variable Index-Linked
-Discount,2.88,19,Fixed Index-Linked
-FIBI,4.98,26,Fixed Non-Linked
-FIBI,4.98,20,Prime
-FIBI,4.71,29,Variable Non-Linked
-FIBI,2.86,13,Variable Index-Linked
-FIBI,2.83,12,Fixed Index-Linked
-Mercantile,5.32,22,Fixed Non-Linked
-Mercantile,5.97,19,Prime
-Mercantile,4.95,24,Variable Non-Linked
-Mercantile,3.06,18,Variable Index-Linked
-Mercantile,2.95,17,Fixed Index-Linked
-Jerusalem,6.23,7,Fixed Non-Linked
-Jerusalem,6.89,6,Prime
-Jerusalem,7.00,12,Variable Non-Linked
-Jerusalem,4.84,38,Variable Index-Linked
-Jerusalem,4.83,37,Fixed Index-Linked
+Mizrahi Tefahot,4.82,38,Fixed Non-Linked
+Mizrahi Tefahot,6.22,3,Prime
+Mizrahi Tefahot,5.30,45,Variable Non-Linked
+Mizrahi Tefahot,3.80,9,Variable Index-Linked
+Mizrahi Tefahot,3.78,5,Fixed Index-Linked
+Leumi,4.84,27,Fixed Non-Linked
+Leumi,5.54,10,Prime
+Leumi,5.07,43,Variable Non-Linked
+Leumi,3.17,11,Variable Index-Linked
+Leumi,2.86,9,Fixed Index-Linked
+Hapoalim,4.86,31,Fixed Non-Linked
+Hapoalim,5.44,9,Prime
+Hapoalim,5.01,48,Variable Non-Linked
+Hapoalim,3.37,6,Variable Index-Linked
+Hapoalim,3.09,6,Fixed Index-Linked
+Discount,5.16,22,Fixed Non-Linked
+Discount,5.54,19,Prime
+Discount,5.32,28,Variable Non-Linked
+Discount,2.84,15,Variable Index-Linked
+Discount,2.86,16,Fixed Index-Linked
+FIBI,5.01,24,Fixed Non-Linked
+FIBI,4.57,18,Prime
+FIBI,5.18,31,Variable Non-Linked
+FIBI,2.79,15,Variable Index-Linked
+FIBI,2.76,12,Fixed Index-Linked
+Mercantile,5.32,24,Fixed Non-Linked
+Mercantile,5.65,16,Prime
+Mercantile,5.46,30,Variable Non-Linked
+Mercantile,3.14,15,Variable Index-Linked
+Mercantile,3.02,15,Fixed Index-Linked
+Jerusalem,6.31,9,Fixed Non-Linked
+Jerusalem,6.89,7,Prime
+Jerusalem,6.96,17,Variable Non-Linked
+Jerusalem,5.18,33,Variable Index-Linked
+Jerusalem,4.86,34,Fixed Index-Linked
