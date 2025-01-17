@@ -36,24 +36,16 @@ def parameters_bar():
 
 def investment_parameters_bar():
     with st.expander("Parameters", expanded=False):
-        cols = st.columns(7)
+        cols = st.columns(5)
         with cols[0]:
             st.session_state.CPI = st.number_input("CPI", value=constants.CPI, help="Expected Customer Price Index")
         with cols[1]:
-            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Return %",
-                                                                        value=constants.StocksMarketYearlyReturn,
-                                                                        help='Expected Annual Stocks Market Returns')
-        with cols[2]:
-            st.session_state.StocksMarketFeesPercentage = st.number_input("Trading Fees %",
-                                                                          value=constants.StocksMarketFeesPercentage,
-                                                                          help='Annual Stocks Market Fees %')
-        with cols[3]:
             st.session_state.TaxGainPercentage = st.number_input("Sell Tax %", value=constants.TaxGainPercentage)
-        with cols[4]:
+        with cols[2]:
             st.session_state.RealEstateAppreciations = st.number_input("RE Appreciation %", value=constants.RealEstateYearlyAppreciation)
-        with cols[5]:
+        with cols[3]:
             st.session_state.MaintenanceRentalRatio = st.number_input("Adjusted Rental Ratio", value=constants.MaintenanceRentalRatio, max_value=1.0, min_value=0.1)
-        with cols[6]:
+        with cols[4]:
             st.session_state.TaxBuyingPercentage = st.number_input("Property Buying Tax %", value=constants.TaxBuyingPercentage)
 
 

@@ -147,7 +147,9 @@ def summary_section(mortgages):
         "First Payment": [np.round(mortgage.monthly_payment(0)) for mortgage in mortgages],
         "Maximum Payment": [np.round(mortgage.highest_monthly_payment()) for mortgage in mortgages],
         "Cost per Currency": [np.round(mortgage.cost_per_currency(),2) for mortgage in mortgages],
-        "Total Predicted Interest (IRR)": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
+        "Bank IRR": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
+        "Average Interest": [round(mortgage.average_interest_rate(),2) for mortgage in mortgages],
+        "CPI Part [%]": [round(mortgage.CPI_bound_amount()/mortgage.loan_amount(), 2) for mortgage in mortgages],
         "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
     }
     summary_df_table = pd.DataFrame(summary_data)
@@ -173,7 +175,7 @@ def summary_section(mortgages):
         )
         st.altair_chart(risk_chart, use_container_width=True)
 
-        y_axis_column = 'Total Predicted Interest (IRR)'
+        y_axis_column = 'Bank IRR'
         risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
         interest_scale = alt.Scale(domain=(summary_df[y_axis_column].min() - 0.1, summary_df[y_axis_column].max() + 0.1))
         size_scale = alt.Scale(domain=(summary_df['First Payment'].min() * 0.9, summary_df['First Payment'].max()))

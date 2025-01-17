@@ -49,9 +49,9 @@ class Loan:
             return pd.DataFrame([amortization_schedule])
 
         for month in range(1, self.grace_period + 1):
-            remaining_balance = remaining_balance * monthly_cpi
-            inflation_part = remaining_balance * (1 - 1 / monthly_cpi)
-            interest_payment = remaining_balance * r
+            remaining_balance = remaining_balance #* monthly_cpi
+            inflation_part = 0 #remaining_balance * (1 - 1 / monthly_cpi)
+            interest_payment = 0 # remaining_balance * r
             remaining_balance = remaining_balance + interest_payment
 
             amortization_schedule.append({

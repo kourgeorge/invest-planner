@@ -153,6 +153,9 @@ class Mortgage:
     def loan_amount(self):
         return sum(loan.loan_amount() for loan in self.loans) if not self.is_empty() else 0
 
+    def CPI_bound_amount(self):
+        return sum(loan.loan_amount()*(loan.cpi>0) for loan in self.loans) if not self.is_empty() else 0
+
     def get_volatility(self):
         return sum(loan.loan_amount()*loan.get_volatility() for loan in self.loans)/self.loan_amount() if not self.is_empty() else 0
 
