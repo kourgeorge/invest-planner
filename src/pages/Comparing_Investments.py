@@ -1,9 +1,14 @@
+import os
 from copy import copy
 
 import numpy as np
 import pandas as pd
 import streamlit as st
+from streamlit_cookies_manager import EncryptedCookieManager
+
+import constants
 from common_components import header, footer, load_mortgage_csv, investment_parameters_bar, mortgage_editor
+from cookies_helper import load_parameters_from_cookies, set_cookie
 from investments import RealEstateInvestment, MortgageRecycleInvestment, StocksMarketInvestment, Investment
 from mortgage import Mortgage
 from pages.Planit_Recycle import get_example_mortgage
@@ -139,7 +144,7 @@ def mortgage_recycle_tab(investment_years):
 
 
 
-    MortgageRecycleInvestment_payment = MortgageRecycleInvestment(initial_fund=initial_fund,
+    MortgageRecycleInvestment_payment = MortgageRecycleInvestment(initial_fund=app_params["initial_fund"],
                                                                   mortgage=mortgage,
                                                                   investment_years=investment_years,
                                                                   investment_yearly_return=st.session_state.StocksMarketYearlyReturn,
@@ -162,8 +167,7 @@ def summary_section(investments: List[Investment]):
         "Worst Monthly Cashflow": [np.round(investment.highest_cash_dept()) for investment in investments],
         "Total CashFlow": [np.round(investment.total_income_payments() -investment.total_expenses_payments())  for investment in investments],
         "Total Revenue": [np.round(investment.total_revenue()) for investment in investments],
-        "IRR": [np.round(investment.get_irr(), 2) for investment in
-                                           investments],
+        "IRR": [np.round(investment.get_irr(), 2) for investment in investments],
         # "Risk": [round(mortgage.get_volatility()) for investment in investments]
     }
     summary_df_table = pd.DataFrame(summary_data)
@@ -209,16 +213,24 @@ if __name__ == '__main__':
     with cols[1]:
         investment_years = st.number_input(label='Investment Years', value=25, step=1, min_value=2, max_value=50)
 
-    tabs = st.tabs(["Old Real Estate", "Mortgage Recycling", "Pre-Constructed Real Estate"])
+    tabs = st.tabs(["Old Real Estate", "Pre-Constructed Real Estate", "Stock market"])
     with tabs[0]:
         REinvestment = real_estate_tab(investment_years)
 
     with tabs[1]:
-        # upload mortgage data
-        MortgageRecycleInvestment_period, MortgageRecycleInvestment_payment = mortgage_recycle_tab(investment_years)
+        PreConstREinvestment = preconstruction_real_estate_tab(investment_years)
 
     with tabs[2]:
-        PreConstREinvestment = preconstruction_real_estate_tab(investment_years)
+        # upload mortgage data
+        cols = st.columns(2)
+        with cols[0]:
+            st.session_state.StocksMarketYearlyReturn = st.number_input("Stocks Return %",
+                                                                        value=constants.StocksMarketYearlyReturn,
+                                                                        help='Expected Annual Stocks Market Returns')
+        with cols[1]:
+            st.session_state.StocksMarketFeesPercentage = st.number_input("Trading Fees %",
+                                                                          value=constants.StocksMarketFeesPercentage,
+                                                                          help='Annual Stocks Market Fees %')
 
     st.divider()
 
