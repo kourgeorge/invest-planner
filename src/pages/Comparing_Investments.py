@@ -4,11 +4,9 @@ from copy import copy
 import numpy as np
 import pandas as pd
 import streamlit as st
-from streamlit_cookies_manager import EncryptedCookieManager
 
 import constants
 from common_components import header, footer, load_mortgage_csv, investment_parameters_bar, mortgage_editor
-from cookies_helper import load_parameters_from_cookies, set_cookie
 from investments import RealEstateInvestment, MortgageRecycleInvestment, StocksMarketInvestment, Investment
 from mortgage import Mortgage
 from pages.Planit_Recycle import get_example_mortgage
