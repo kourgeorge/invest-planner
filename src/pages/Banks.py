@@ -45,7 +45,7 @@ if __name__ == '__main__':
     header()
     cols = st.columns([1,1,3], gap='large')
     with cols[0]:
-        amount = st.number_input(label="Amount", min_value=0, max_value=10000000, value=500000, step=100000)
+        amount = st.number_input(label="Amount", min_value=0, max_value=10000000, value=825000, step=100000)
     with cols[1]:
         years = st.number_input(label="Years", min_value=0, max_value=30, step=1, value=20)
     with cols[2]:
