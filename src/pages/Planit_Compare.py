@@ -150,18 +150,18 @@ def summary_section(mortgages):
         "Bank IRR": [np.round(mortgage.get_irr(), 2) for mortgage in mortgages],
         "Average Interest": [round(mortgage.average_interest_rate(),2) for mortgage in mortgages],
         "CPI Part [%]": [round(mortgage.CPI_bound_amount()/mortgage.loan_amount(), 2) for mortgage in mortgages],
-        "Risk": [round(mortgage.get_volatility()) for mortgage in mortgages]
+        "Risk": [np.round(mortgage.get_volatility(),2) if not np.isnan(mortgage.get_volatility()) else "N/A" for mortgage in mortgages]
     }
     summary_df_table = pd.DataFrame(summary_data)
 
-    col_summary, col_metrics = st.columns([3, 2], gap='large')
-    with col_summary:
-        st.dataframe(summary_df_table.set_index('Name').transpose(), use_container_width=True, hide_index=False)
+    st.dataframe(summary_df_table.set_index('Name').transpose(), use_container_width=True, hide_index=False)
 
-    with col_metrics:
-        summary_df = summary_df_table.copy()
-        summary_df["Indexation"] = [np.round(mortgage.total_inflation_payments()) for mortgage in
-                                                 mortgages]
+    summary_df = summary_df_table.copy()
+    summary_df["Indexation"] = [np.round(mortgage.total_inflation_payments()) for mortgage in
+                                mortgages]
+
+    col_cost, col_risk = st.columns([3, 2], gap='large')
+    with col_cost:
 
         # Melt the DataFrame to make it suitable for a stacked bar chart
         melted_df = pd.melt(summary_df, id_vars=["Name"], value_vars=["Amount", "Interest Payments", "Indexation"])
@@ -175,15 +175,16 @@ def summary_section(mortgages):
         )
         st.altair_chart(risk_chart, use_container_width=True)
 
+    with col_risk:
         y_axis_column = 'Bank IRR'
-        risk_scale = alt.Scale(domain=(summary_df["Risk"].min()-1, summary_df["Risk"].max()+1))
+        risk_scale = alt.Scale(domain=(summary_df["Risk"].min() - 1, summary_df["Risk"].max() + 1))
         interest_scale = alt.Scale(domain=(summary_df[y_axis_column].min() - 0.1, summary_df[y_axis_column].max() + 0.1))
         size_scale = alt.Scale(domain=(summary_df['First Payment'].min() * 0.9, summary_df['First Payment'].max()))
         costs_chart = (alt.Chart(summary_df).mark_circle()
-             .encode(x=alt.Y("Risk", scale=risk_scale),
-                     y=alt.X(y_axis_column, scale=interest_scale),
-                     size=alt.Size("First Payment", scale=size_scale),
-                     color='Name', tooltip=["Risk", y_axis_column, "Maximum Payment"])).properties(
+                       .encode(x=alt.Y("Risk", scale=risk_scale),
+                               y=alt.X(y_axis_column, scale=interest_scale),
+                               size=alt.Size("First Payment", scale=size_scale),
+                               color='Name', tooltip=["Risk", y_axis_column, "Maximum Payment"])).properties(
             width=200, height=200)
 
         st.altair_chart(costs_chart, use_container_width=True)
@@ -233,7 +234,6 @@ def main():
 
     main_mortgage_comparison_report()
 
-    st.divider()
     footer()
 
 if __name__ == "__main__":
